@@ -20,6 +20,8 @@ import Home from "./website pages/Home";
 import Forklift3D from "./forklift3d";
 import OurSolutions from "./website pages/solutions";
 import WebsiteMain from "./website pages/HomePage";
+import AssetDepreciation from "./admin/pages/asset-depreciation";
+import AssetDepreciationDashboard from "./admin/pages/asset-list";
 
 function App() {
   return (
@@ -30,17 +32,14 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/solutions" element={<OurSolutions />} />
         <Route path="/main" element={<WebsiteMain />} />
-
         {/* Public routes */}
         <Route path="/cam" element={<CameraTest />} />
-
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginUser />} />
         <Route path="/register" element={<RegisterUser />} />
         <Route path="/admin/login" element={<LoginAdmin />} />
         <Route path="/admin/register" element={<RegisterAdmin />} />
         <Route path="/scanner" element={<HybridQRScanner />} />
-
         <Route
           path="/scanner"
           element={
@@ -63,6 +62,14 @@ function App() {
           element={
             <PrivateRoute>
               <AssetsDashboard />
+            </PrivateRoute>
+          }
+        />{" "}
+        <Route
+          path="/assets/depreciation"
+          element={
+            <PrivateRoute>
+              <AssetDepreciationDashboard />
             </PrivateRoute>
           }
         />

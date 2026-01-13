@@ -82,7 +82,7 @@ const RegisterAdmin = () => {
               Already have an account?{" "}
               <Link
                 to="/admin/login"
-                className="font-medium text-primary hover:text-primary/80"
+                className="font-medium text-green-500 hover:text-green-600"
               >
                 Sign In
               </Link>
@@ -145,7 +145,7 @@ const RegisterAdmin = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="group relative flex w-full justify-center rounded-lg border border-transparent bg-primary py-3 px-4 text-sm font-semibold text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background-dark"
+                className="group relative flex w-full justify-center rounded-lg border border-transparent bg-green-500 py-3 px-4 text-sm font-semibold text-white hover:bg-green-600   focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background-dark"
               >
                 {loading ? "Signing Up..." : "Sign Up"}
               </button>

@@ -68,7 +68,7 @@ const LoginAdmin = () => {
       <div className=" flex flex-1 items-center justify-center  bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
         <div className="w-full max-w-md rounded-xl bg-white/50 p-8 shadow-2xl backdrop-blur-sm dark:bg-background-dark/50">
           <div className="mb-8 text-center">
-            <h1 className="mt-4 text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+            <h1 className="mt-4 text-3xl font-bold font-mono tracking-tight text-gray-900 dark:text-white">
               PrimeTrack
             </h1>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
@@ -104,7 +104,7 @@ const LoginAdmin = () => {
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full justify-center rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background-dark"
+              className="flex w-full justify-center rounded-lg bg-green-500 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background-dark"
             >
               {loading ? "Logging In..." : "Log In"}
             </button>
@@ -119,7 +119,7 @@ const LoginAdmin = () => {
             Don't have an account?{" "}
             <Link
               to="/admin/register"
-              className="font-medium text-primary hover:text-primary/80"
+              className="font-medium text-green-500 hover:text-green-600"
             >
               Sign Up
             </Link>

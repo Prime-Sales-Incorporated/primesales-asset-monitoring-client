@@ -55,7 +55,7 @@ const LandingPage = () => {
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <Link
-                to="/register"
+                to="/dashboard"
                 className="rounded-lg bg-primary px-5 py-3 text-base font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 Get Started

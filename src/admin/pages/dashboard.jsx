@@ -3,12 +3,12 @@ import React from "react";
 import Header from "../../user/components/header";
 
 const StatCard = ({ title, value, trend, trendColor }) => (
-  <div className="bg-white dark:bg-slate-900 rounded-lg p-6 shadow border">
+  <div className="bg-white dark:bg-slate-900 rounded-lg p-6 shadow border border-gray-500">
     <p className="text-sm font-medium text-black/60 dark:text-white/60">
       {title}
     </p>
     <p className="text-3xl font-bold mt-1">{value}</p>
-    <p className={`text-sm font-medium mt-1 ${trendColor}`}>{trend}</p>
+    {/* <p className={`text-sm font-medium mt-1 ${trendColor}`}>{trend}</p> */}
   </div>
 );
 
@@ -20,7 +20,8 @@ const MainDashboard = () => {
     <main className="flex-1 overflow-y-auto bg-background-light dark:bg-background-dark text-black dark:text-white">
       {/* Stats Cards */}
       <Header />
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6">
+      <h2 className="text-xl font-bold px-6">Asset Overview</h2>
+      <section className="grid grid-cols-1 md:grid-cols-4 gap-6 p-6">
         <StatCard
           title="Total Assets"
           value="1,250"
@@ -28,22 +29,28 @@ const MainDashboard = () => {
           trendColor="text-green-500"
         />
         <StatCard
-          title="Low Stock Alerts"
+          title="Fully Depreciated"
           value="35"
           trend="-5%"
           trendColor="text-red-500"
         />
         <StatCard
-          title="Recent Activity"
+          title="New Assets"
           value="12"
           trend="+2%"
+          trendColor="text-green-500"
+        />
+        <StatCard
+          title="Total Deprecation Expenses"
+          value="1,320,205.21"
+          trend="+10%"
           trendColor="text-green-500"
         />
       </section>
 
       {/* Inventory Overview */}
       <section className="p-6">
-        <h2 className="text-xl font-bold mb-4">Inventory Overview</h2>
+        <h2 className="text-xl font-bold mb-4">Asset Chart</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Stock Levels Bar Chart */}
           <div className="bg-white dark:bg-slate-900 rounded-lg p-6 border">

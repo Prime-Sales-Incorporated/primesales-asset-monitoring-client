@@ -17,52 +17,65 @@ const Header = () => {
   }, [dark]);
 
   return (
-    <header className="flex items-center border-b border-background-light/20 dark:border-background-dark/20 px-4 py-3 relative">
-      {/* Dark Mode Toggle */}
-      <div
-        className={`absolute top-4 right-4 flex items-center justify-between w-12 h-6 p-1 rounded-full cursor-pointer transition-colors duration-300 ${
-          dark ? "bg-gray-800" : "bg-gray-800"
-        }`}
-        onClick={() => setDark(!dark)}
-      >
-        <FaMoon
-          className={`text-yellow-300 ${
-            dark ? "opacity-100" : "opacity-50"
-          } transition-opacity duration-300`}
-        />
-        <FaSun
-          className={`text-yellow-400 ${
-            dark ? "opacity-50" : "opacity-100"
-          } transition-opacity duration-300`}
-        />
-        <div
-          className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
-            dark ? "translate-x-6" : "translate-x-0"
-          }`}
-        ></div>
-      </div>
-
-      <div cclassName="flex items-center">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="flex items-center gap-4 text-slate-800 dark:text-white ml-auto justify-start ">
-            <div className="h-6 w-6">
-              <svg
-                className="text-primary"
-                fill="none"
-                viewBox="0 0 48 48"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </div>
-            <h2 className="text-lg font-bold">PrimeTrack</h2>
-          </div>
-        </Link>
-      </div>
+    <header className="flex items-center justify-between border-b border-background-light/20 dark:border-background-dark/20 px-4 py-3">
       {/* Logo */}
+      <Link to="/" className="flex items-center gap-0">
+        <div className="h-6 w-6">
+          <img src="/psi.png" alt="Logo" />
+        </div>
+        <h2 className="text-lg font-bold font-mono text-slate-800 dark:text-white">
+          PrimeTrack
+        </h2>
+      </Link>
+
+      {/* Nav + Dark Mode */}
+      <div className="flex items-center gap-6">
+        {/* Nav */}
+        <nav className="hidden md:flex gap-4">
+          <Link
+            to="/dashboard"
+            className="text-slate-800 dark:text-white hover:"
+          >
+            Dashboard
+          </Link>
+          <Link
+            to="/assets/list"
+            className="text-slate-800 dark:text-white hover:"
+          >
+            Assets
+          </Link>
+          <Link to="/contact" className="text-slate-800 dark:text-white hover:">
+            Depreciation
+          </Link>
+          <Link to="/scanner" className="text-slate-800 dark:text-white hover:">
+            Scan
+          </Link>
+        </nav>
+
+        {/* Dark Mode Toggle */}
+        <div
+          className={`relative flex items-center justify-between w-12 h-6 p-1 rounded-full cursor-pointer transition-colors duration-300 ${
+            dark ? "bg-gray-800" : "bg-gray-800"
+          }`}
+          onClick={() => setDark(!dark)}
+        >
+          <FaMoon
+            className={`text-yellow-300 ${
+              dark ? "opacity-100" : "opacity-50"
+            } transition-opacity`}
+          />
+          <FaSun
+            className={`text-yellow-400 ${
+              dark ? "opacity-50" : "opacity-100"
+            } transition-opacity`}
+          />
+          <div
+            className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
+              dark ? "translate-x-6" : "translate-x-0"
+            }`}
+          />
+        </div>
+      </div>
     </header>
   );
 };

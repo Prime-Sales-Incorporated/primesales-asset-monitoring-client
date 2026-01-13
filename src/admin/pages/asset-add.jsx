@@ -14,6 +14,9 @@ const RegisterAsset = () => {
   const [issuedDate, setIssuedDate] = useState("");
   const [issuedTo, setIssuedTo] = useState("");
   const [status, setStatus] = useState(""); // new state
+  const [assetCost, setAssetCost] = useState("");
+
+  const [lifeSpan, setLifeSpan] = useState(""); // in years
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,6 +31,8 @@ const RegisterAsset = () => {
       issuedDate,
       issuedTo,
       status, // add this
+      assetCost,
+      lifeSpan, // ✅ add this
     };
 
     try {
@@ -52,6 +57,9 @@ const RegisterAsset = () => {
         setPurchaseDate("");
         setIssuedDate("");
         setIssuedTo("");
+        setAssetCost("");
+        setLifeSpan("");
+
         setGenerateQR(false);
         alert("Asset registered successfully!");
       } else {
@@ -221,6 +229,41 @@ const RegisterAsset = () => {
               className="w-full px-3 py-2 border rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-slate-400 dark:placeholder-slate-500"
               value={issuedTo}
               onChange={(e) => setIssuedTo(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="asset-cost"
+              className="block test-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+            ></label>
+            <input
+              type="number"
+              min={0}
+              required
+              step={0.01}
+              placeholder="e.g. 45000.00"
+              className="w-full px-3 py-2 border rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-slate-400 dark:placeholder-slate-500"
+              value={assetCost}
+              onChange={(e) => setAssetCost(e.target.value)}
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="lifespan"
+              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+            >
+              Asset Lifespan (Years)
+            </label>
+            <input
+              id="lifepan"
+              type="number"
+              min={1}
+              required
+              placeholder="e.g. 5"
+              className="w-full px-3 py-2 border rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-slate-400 dark:placeholder-slate-500"
+              value={lifeSpan}
+              onChange={(e) => setLifeSpan(e.target.value)}
             />
           </div>
 
