@@ -20,7 +20,7 @@ const AssetScanner = () => {
   return (
     <div className="flex h-screen flex-col bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
       {/* Header */}
-      <Header />
+      {/* <Header /> */}
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">

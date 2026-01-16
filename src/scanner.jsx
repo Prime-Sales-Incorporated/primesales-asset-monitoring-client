@@ -137,7 +137,7 @@ const HybridQRScanner = () => {
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark">
-      <Header />
+      {/* <Header /> */}
       <div className="flex flex-col items-center  min-h-screen p-4 bg-background-light dark:bg-background-dark">
         <h1 className="text-2xl font-bold text-black dark:text-white mb-4">
           Hybrid QR Scanner

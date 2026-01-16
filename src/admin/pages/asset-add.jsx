@@ -73,8 +73,8 @@ const RegisterAsset = () => {
   };
 
   return (
-    <main className="flex-1 w-full bg-background-light dark:bg-background-dark pb-10">
-      <Header />
+    <main className="flex-1 w-full py-2 bg-background-light dark:bg-background-dark pb-10">
+      {/* <Header /> */}
       <div className="max-w-2xl mx-auto bg-background-light dark:bg-background-dark p-8 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800">
         <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white">
           Register New Asset
@@ -158,85 +158,109 @@ const RegisterAsset = () => {
           </div>
 
           {/* Purchase Date */}
-          <div>
-            <label
-              htmlFor="purchase-date"
-              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
-            >
-              Purchase Date
-            </label>
-            <input
-              id="purchase-date"
-              type="date"
-              className="w-full px-3 py-2 border rounded-lg placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              value={purchaseDate}
-              onChange={(e) => setPurchaseDate(e.target.value)}
-            />
-          </div>
-
-          {/* Issued Date */}
-          <div>
-            <label
-              htmlFor="issued-date"
-              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
-            >
-              Issued Date
-            </label>
-            <div className="flex items-center gap-3">
+          <div className="flex gap-4 w-full justify-between">
+            <div className="w-full">
+              <label
+                htmlFor="purchase-date"
+                className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+              >
+                Purchase Date
+              </label>
               <input
-                id="issued-date"
+                id="purchase-date"
                 type="date"
                 className="w-full px-3 py-2 border rounded-lg placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                value={issuedDate}
-                onChange={(e) => setIssuedDate(e.target.value)}
+                value={purchaseDate}
+                onChange={(e) => setPurchaseDate(e.target.value)}
               />
             </div>
-            <div className="flex items-center gap-1 mt-2">
-              <input
-                id="same-as-purchase"
-                type="checkbox"
-                className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-primary focus:ring-primary"
-                checked={issuedDate === purchaseDate && purchaseDate !== ""}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    setIssuedDate(purchaseDate);
-                  } else {
-                    setIssuedDate("");
-                  }
-                }}
-              />
+
+            {/* Issued Date */}
+            <div className="w-full">
               <label
-                htmlFor="same-as-purchase"
-                className="text-sm text-slate-700 dark:text-slate-300"
+                htmlFor="issued-date"
+                className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
               >
-                Same as purchase date
+                Issued Date
               </label>
+              <div className="flex items-center gap-3">
+                <input
+                  id="issued-date"
+                  type="date"
+                  className="w-full px-3 py-2 border rounded-lg placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  value={issuedDate}
+                  onChange={(e) => setIssuedDate(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-1 mt-2">
+                <input
+                  id="same-as-purchase"
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-primary focus:ring-primary"
+                  checked={issuedDate === purchaseDate && purchaseDate !== ""}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setIssuedDate(purchaseDate);
+                    } else {
+                      setIssuedDate("");
+                    }
+                  }}
+                />
+                <label
+                  htmlFor="same-as-purchase"
+                  className="text-sm text-slate-700 dark:text-slate-300"
+                >
+                  Same as purchase date
+                </label>
+              </div>
             </div>
           </div>
 
           {/* Issued To */}
-          <div>
-            <label
-              htmlFor="issued-to"
-              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
-            >
-              Issued To
-            </label>
-            <input
-              id="issued-to"
-              type="text"
-              placeholder="Enter the name or department e.g. 'John Doe' or 'IT Department'"
-              className="w-full px-3 py-2 border rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-slate-400 dark:placeholder-slate-500"
-              value={issuedTo}
-              onChange={(e) => setIssuedTo(e.target.value)}
-            />
+          <div className="flex justify-between gap-4">
+            <div className="w-full">
+              <label
+                htmlFor="issued-to"
+                className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+              >
+                Issued To
+              </label>
+              <input
+                id="issued-to"
+                type="text"
+                placeholder="Enter the name or department e.g. 'John Doe' or 'IT Department'"
+                className="w-full px-3 py-2 border rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-slate-400 dark:placeholder-slate-500"
+                value={issuedTo}
+                onChange={(e) => setIssuedTo(e.target.value)}
+              />
+            </div>
+            <div className="w-full">
+              <label
+                htmlFor="lifespan"
+                className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+              >
+                Asset Lifespan (Years)
+              </label>
+              <input
+                id="lifepan"
+                type="number"
+                min={1}
+                required
+                placeholder="e.g. 5"
+                className="w-full px-3 py-2 border rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-slate-400 dark:placeholder-slate-500"
+                value={lifeSpan}
+                onChange={(e) => setLifeSpan(e.target.value)}
+              />
+            </div>
           </div>
 
           <div>
             <label
               htmlFor="asset-cost"
-              className="block test-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
-            ></label>
+              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+            >
+              Asset Cost
+            </label>
             <input
               type="number"
               min={0}
@@ -246,24 +270,6 @@ const RegisterAsset = () => {
               className="w-full px-3 py-2 border rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-slate-400 dark:placeholder-slate-500"
               value={assetCost}
               onChange={(e) => setAssetCost(e.target.value)}
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="lifespan"
-              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
-            >
-              Asset Lifespan (Years)
-            </label>
-            <input
-              id="lifepan"
-              type="number"
-              min={1}
-              required
-              placeholder="e.g. 5"
-              className="w-full px-3 py-2 border rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-slate-400 dark:placeholder-slate-500"
-              value={lifeSpan}
-              onChange={(e) => setLifeSpan(e.target.value)}
             />
           </div>
 
@@ -309,7 +315,7 @@ const RegisterAsset = () => {
           <div className="pt-6 flex justify-end">
             <button
               type="submit"
-              className="flex items-center justify-center h-11 px-6 text-sm font-bold text-white rounded-lg bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background-light dark:focus:ring-offset-background-dark focus:ring-primary"
+              className="flex items-center justify-center h-11 px-6 text-sm font-bold text-white rounded-lg bg-green-500 hover:bg-green-500/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background-light dark:focus:ring-offset-background-dark focus:ring-primary"
             >
               <span className="material-symbols-outlined mr-2">save</span>
               Save Asset

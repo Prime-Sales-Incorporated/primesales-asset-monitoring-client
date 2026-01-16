@@ -21,75 +21,109 @@ import Forklift3D from "./forklift3d";
 import OurSolutions from "./website pages/solutions";
 import WebsiteMain from "./website pages/HomePage";
 import AssetDepreciation from "./admin/pages/asset-depreciation";
-import AssetDepreciationDashboard from "./admin/pages/asset-list";
+import AssetDepreciationDashboard from "./admin/pages/asset-depr";
+import AssetDetailsTable from "./admin/pages/asset-list";
+import Sidebar from "./user/components/sidebar";
+import { useLocation } from "react-router-dom";
+function AppLayout() {
+  const location = useLocation();
+
+  // routes that should NOT show sidebar
+  const hideSidebarRoutes = [
+    "/",
+    "/login",
+    "/register",
+    "/admin/login",
+    "/admin/register",
+  ];
+
+  const hideSidebar = hideSidebarRoutes.includes(location.pathname);
+
+  return (
+    <div className="flex min-h-screen">
+      {!hideSidebar && <Sidebar />}
+
+      <div className="flex-1">
+        <Toaster position="top-right" />
+
+        <Routes>
+          {/* Website Routes */}
+          <Route path="/home" element={<Home />} />
+          <Route path="/solutions" element={<OurSolutions />} />
+          <Route path="/main" element={<WebsiteMain />} />
+
+          {/* Public routes */}
+          <Route path="/cam" element={<CameraTest />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginUser />} />
+          <Route path="/register" element={<RegisterUser />} />
+          <Route path="/admin/login" element={<LoginAdmin />} />
+          <Route path="/admin/register" element={<RegisterAdmin />} />
+
+          {/* Protected routes */}
+          <Route
+            path="/scanner"
+            element={
+              <PrivateRoute>
+                <HybridQRScanner />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute>
+                <MainDashboard />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/assets/list"
+            element={
+              <PrivateRoute>
+                <AssetDetailsTable />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/assets/depreciation"
+            element={
+              <PrivateRoute>
+                <AssetDepreciationDashboard />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/assets/add"
+            element={
+              <PrivateRoute type="admin">
+                <RegisterAsset />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/trans"
+            element={
+              <PrivateRoute>
+                <TransactionsOffline />
+              </PrivateRoute>
+            }
+          />
+        </Routes>
+      </div>
+    </div>
+  );
+}
 
 function App() {
   return (
     <Router>
-      <Toaster position="top-right" /> {/* Add this once, globally */}
-      <Routes>
-        {/* Website Routes */}
-        <Route path="/home" element={<Home />} />
-        <Route path="/solutions" element={<OurSolutions />} />
-        <Route path="/main" element={<WebsiteMain />} />
-        {/* Public routes */}
-        <Route path="/cam" element={<CameraTest />} />
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginUser />} />
-        <Route path="/register" element={<RegisterUser />} />
-        <Route path="/admin/login" element={<LoginAdmin />} />
-        <Route path="/admin/register" element={<RegisterAdmin />} />
-        <Route path="/scanner" element={<HybridQRScanner />} />
-        <Route
-          path="/scanner"
-          element={
-            <PrivateRoute>
-              <AssetScanner />
-            </PrivateRoute>
-          }
-        />
-        {/* Protected routes */}
-        <Route
-          path="/dashboard"
-          element={
-            <PrivateRoute>
-              <MainDashboard />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/assets/list"
-          element={
-            <PrivateRoute>
-              <AssetsDashboard />
-            </PrivateRoute>
-          }
-        />{" "}
-        <Route
-          path="/assets/depreciation"
-          element={
-            <PrivateRoute>
-              <AssetDepreciationDashboard />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/assets/add"
-          element={
-            <PrivateRoute type="admin">
-              <RegisterAsset />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/trans"
-          element={
-            <PrivateRoute>
-              <TransactionsOffline />
-            </PrivateRoute>
-          }
-        />
-      </Routes>
+      <AppLayout />
     </Router>
   );
 }

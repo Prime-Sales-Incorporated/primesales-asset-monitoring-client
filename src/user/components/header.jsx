@@ -44,7 +44,16 @@ const Header = () => {
           >
             Assets
           </Link>
-          <Link to="/contact" className="text-slate-800 dark:text-white hover:">
+          <Link
+            to="/assets/add"
+            className="text-slate-800 dark:text-white hover:"
+          >
+            Add
+          </Link>
+          <Link
+            to="/assets/depreciation"
+            className="text-slate-800 dark:text-white hover:"
+          >
             Depreciation
           </Link>
           <Link to="/scanner" className="text-slate-800 dark:text-white hover:">
@@ -53,7 +62,7 @@ const Header = () => {
         </nav>
 
         {/* Dark Mode Toggle */}
-        <div
+        {/* <div
           className={`relative flex items-center justify-between w-12 h-6 p-1 rounded-full cursor-pointer transition-colors duration-300 ${
             dark ? "bg-gray-800" : "bg-gray-800"
           }`}
@@ -74,7 +83,7 @@ const Header = () => {
               dark ? "translate-x-6" : "translate-x-0"
             }`}
           />
-        </div>
+        </div> */}
       </div>
     </header>
   );

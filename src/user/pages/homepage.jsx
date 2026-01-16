@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 const LandingPage = () => {
   return (
     <div className="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200 min-h-screen flex flex-col">
-      <Header />
+      {/* <Header /> */}
       <main className="flex-1">
         {/* Hero Section */}
         {/* Hero Section */}

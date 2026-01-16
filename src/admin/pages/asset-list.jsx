@@ -1,150 +1,67 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import { QRCodeCanvas } from "qrcode.react";
 import Header from "../components/header";
 import API_BASE_URL from "../../API";
 
-const months = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
-
-// Fiscal quarters starting June
-const quarterMap = {
-  1: [5, 6, 7], // Jun, Jul, Aug
-  2: [8, 9, 10], // Sep, Oct, Nov
-  3: [11, 0, 1], // Dec, Jan, Feb
-  4: [2, 3, 4], // Mar, Apr, May
-};
-
-const fiscalMonths = [5, 6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4];
-
-// ===== Depreciation Helpers =====
-const getMonthlySchedule = (asset) => {
-  const cost = Number(asset.assetCost) || 0;
-  const life = Number(asset.lifeSpan) || 1;
-  if (!asset.purchaseDate || cost <= 0 || life <= 0) return [];
-
-  const purchase = new Date(asset.purchaseDate);
-  if (isNaN(purchase)) return [];
-
-  const standardMonthly = cost / (life * 12);
-  const dailyRate = standardMonthly / 30;
-
-  let schedule = [];
-  let accumulated = 0;
-  let month = purchase.getMonth();
-  let year = purchase.getFullYear();
-
-  const firstMonthDep = Number(
-    (dailyRate * (30 - purchase.getDate() + 1)).toFixed(2)
-  );
-
-  schedule.push({ year, month, dep: firstMonthDep });
-  accumulated += firstMonthDep;
-
-  while (accumulated + standardMonthly < cost) {
-    month++;
-    if (month > 11) {
-      month = 0;
-      year++;
-    }
-    schedule.push({ year, month, dep: Number(standardMonthly.toFixed(2)) });
-    accumulated += standardMonthly;
-  }
-
-  const remaining = Number((cost - accumulated).toFixed(2));
-  if (remaining > 0) {
-    month++;
-    if (month > 11) {
-      month = 0;
-      year++;
-    }
-    schedule.push({ year, month, dep: remaining });
-  }
-
-  return schedule;
-};
-
-// Fiscal year label (June-May)
-const getFiscalYearLabel = (year, month, fiscalStartMonth = 5) => {
-  return month >= fiscalStartMonth ? year : year - 1;
-};
-
-const getScheduleForQuarter = (schedule, fiscalYear, quarter) => {
-  const qMonths = quarterMap[quarter];
-  return qMonths.map((m) => {
-    const entry = schedule.find(
-      (s) => getFiscalYearLabel(s.year, s.month) === fiscalYear && s.month === m
-    );
-    return entry ? entry.dep : 0;
-  });
-};
-
-const getScheduleForFiscalYear = (schedule, fiscalYear) => {
-  return fiscalMonths.map((m) => {
-    const entry = schedule.find(
-      (s) => getFiscalYearLabel(s.year, s.month) === fiscalYear && s.month === m
-    );
-    return entry ? entry.dep : 0;
-  });
-};
-
-const AssetDepreciationDashboard = () => {
+const AssetDetailsTable = () => {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [maxFiscalYear, setMaxFiscalYear] = useState(new Date().getFullYear());
-  const [selectedFiscalYear, setSelectedFiscalYear] = useState(
-    new Date().getFullYear()
-  );
-  const [selectedQuarter, setSelectedQuarter] = useState("ALL");
+  const [previewQR, setPreviewQR] = useState(null);
+  const modalRef = useRef(null);
 
-  const formatMoney = (v) =>
-    new Intl.NumberFormat("en-PH", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(v);
+  const fetchAssets = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/asset/get/all`, {
+        headers: {
+          "ngrok-skip-browser-warning": "true",
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await res.json();
+      setAssets(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAssets = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/asset/get/all`, {
-          headers: {
-            "ngrok-skip-browser-warning": "true",
-            "Content-Type": "application/json",
-          },
-        });
-        const data = await res.json();
-        setAssets(data);
-
-        let lastYear = new Date().getFullYear();
-        data.forEach((a) => {
-          const schedule = getMonthlySchedule(a);
-          if (schedule.length) {
-            const lastMonth = schedule[schedule.length - 1];
-            lastYear = Math.max(
-              lastYear,
-              getFiscalYearLabel(lastMonth.year, lastMonth.month)
-            );
-          }
-        });
-        setMaxFiscalYear(lastYear);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchAssets();
   }, []);
+
+  // Close modal if click outside
+  const handleClickOutside = (e) => {
+    if (modalRef.current && !modalRef.current.contains(e.target)) {
+      setPreviewQR(null);
+    }
+  };
+
+  useEffect(() => {
+    if (previewQR) {
+      document.addEventListener("mousedown", handleClickOutside);
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [previewQR]);
+
+  const handleEdit = (assetId) => {
+    console.log("Edit asset:", assetId);
+  };
+
+  const handleDelete = async (assetId) => {
+    if (!window.confirm("Are you sure you want to delete this asset?")) return;
+    try {
+      await fetch(`${API_BASE_URL}/api/asset/delete/${assetId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+      });
+      setAssets((prev) => prev.filter((a) => a._id !== assetId));
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   if (loading)
     return (
@@ -153,155 +70,162 @@ const AssetDepreciationDashboard = () => {
       </div>
     );
 
-  let totalPeriodDep = 0;
-
-  const headerMonths =
-    selectedQuarter === "ALL" ? fiscalMonths : quarterMap[selectedQuarter];
-
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark dark:text-gray-300">
-      <Header />
+      {/* <Header /> */}
       <main className="px-3 py-4">
-        <h1 className="text-lg font-bold mb-3">Asset Depreciation Schedule</h1>
-
-        <div className="flex gap-4 mb-3 text-sm">
-          <div>
-            <label className="mr-1 font-semibold">Fiscal Year:</label>
-            <select
-              value={selectedFiscalYear}
-              onChange={(e) => setSelectedFiscalYear(Number(e.target.value))}
-              className="border px-2 py-1"
-            >
-              {Array.from(
-                { length: maxFiscalYear - 2020 + 1 },
-                (_, i) => 2020 + i
-              ).map((y) => (
-                <option key={y} value={y}>
-                  {y}-{y + 1}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mr-1 font-semibold">Period:</label>
-            <select
-              value={selectedQuarter}
-              onChange={(e) => setSelectedQuarter(e.target.value)}
-              className="border px-2 py-1"
-            >
-              <option value="ALL"> Fiscal Year</option>
-              {[1, 2, 3, 4].map((q) => (
-                <option key={q} value={q}>
-                  Q{q}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        <h1 className="text-xl font-semibold mb-3">Asset Details</h1>
 
         <div className="overflow-x-auto w-full border">
-          <table className="w-full text-[11px] border-collapse">
+          <table className="w-full text-[12px] border-collapse">
             <thead>
               <tr className="bg-black/10">
-                <th colSpan={5}></th>
-                <th
-                  colSpan={headerMonths.length}
-                  className="border bg-yellow-300 text-center"
-                >
-                  Fiscal Year {selectedFiscalYear}-{selectedFiscalYear + 1}
-                  {selectedQuarter !== "ALL" && ` – Q${selectedQuarter}`}
-                </th>
-                <th className="border">Total</th>
-              </tr>
-              <tr>
-                {["Particulars", "Class", "Date", "Life", "Cost"].map(
-                  (h, i) => (
-                    <th
-                      key={i}
-                      className="sticky z-30 bg-white outline outline-1 p-1"
-                    >
-                      {h}
-                    </th>
-                  )
-                )}
-
-                {headerMonths.map((m) => (
-                  <th key={m} className="border p-1 w-[70px]">
-                    {months[m]}
+                {[
+                  "Asset Name",
+                  "Classification",
+                  "Description",
+                  "Category",
+                  "Serial Number",
+                  "Purchase Date",
+                  "Issued Date",
+                  "Issued To",
+                  "Status",
+                  "Life Span",
+                  "Cost",
+                  "QR Code", // new column
+                  "Actions",
+                ].map((h, i) => (
+                  <th key={i} className="border p-2 text-left">
+                    {h}
                   </th>
                 ))}
-
-                <th className="border p-1">Total</th>
               </tr>
             </thead>
 
             <tbody>
-              {assets.map((asset) => {
-                const schedule = getMonthlySchedule(asset);
+              {assets.map((asset) => (
+                <tr key={asset._id} className="hover:bg-black/5">
+                  <td className="border p-2">{asset.assetName}</td>
+                  <td className="border p-2">{asset.category || "-"}</td>
+                  <td className="border p-2">{asset.description || "-"}</td>
+                  <td className="border p-2">{asset.category || "-"}</td>
+                  <td className="border p-2">{asset.serialNumber || "-"}</td>
+                  <td className="border p-2">
+                    {asset.purchaseDate
+                      ? new Date(asset.purchaseDate).toLocaleDateString("en-PH")
+                      : "-"}
+                  </td>
+                  <td className="border p-2">
+                    {asset.issuedDate
+                      ? new Date(asset.issuedDate).toLocaleDateString("en-PH")
+                      : "-"}
+                  </td>
+                  <td className="border p-2">{asset.issuedTo || "-"}</td>
+                  <td className="border p-2">{asset.status || "-"}</td>
+                  <td className="border p-2 text-center">
+                    {asset.lifeSpan || "-"}
+                  </td>
+                  <td className="border p-2 text-right">
+                    ₱
+                    {Number(asset.assetCost).toLocaleString("en-PH", {
+                      minimumFractionDigits: 2,
+                    })}
+                  </td>
 
-                const deps =
-                  selectedQuarter === "ALL"
-                    ? getScheduleForFiscalYear(schedule, selectedFiscalYear)
-                    : getScheduleForQuarter(
-                        schedule,
-                        selectedFiscalYear,
-                        Number(selectedQuarter)
-                      );
-
-                const periodTotal = deps.reduce((a, b) => a + b, 0);
-                totalPeriodDep += periodTotal;
-
-                return (
-                  <tr key={asset._id}>
-                    <td className="sticky left-0 z-20 bg-white outline outline-1 p-1">
-                      {asset.assetName}
-                    </td>
-                    <td className="sticky left-[140px] z-20 bg-white outline outline-1 p-1">
-                      {asset.category}
-                    </td>
-                    <td className="sticky left-[230px] z-20 bg-white outline outline-1 p-1">
-                      {asset.purchaseDate
-                        ? new Date(asset.purchaseDate).toLocaleDateString(
-                            "en-PH"
+                  {/* QR Code Column with preview on click */}
+                  <td className="border p-2 flex justify-center">
+                    {asset.serialNumber ? (
+                      <div
+                        className="cursor-pointer"
+                        onClick={() =>
+                          setPreviewQR(
+                            JSON.stringify({
+                              serialNumber: asset.serialNumber,
+                              category: asset.category || "Uncategorized",
+                            })
                           )
-                        : "-"}
-                    </td>
-                    <td className="sticky left-[320px] z-20 bg-white outline outline-1 p-1 text-center">
-                      {asset.lifeSpan}
-                    </td>
-                    <td className="sticky left-[370px] z-20 bg-white outline outline-1 p-1">
-                      ₱{formatMoney(asset.assetCost)}
-                    </td>
+                        }
+                      >
+                        <QRCodeCanvas
+                          value={JSON.stringify({
+                            serialNumber: asset.serialNumber,
+                            category: asset.category || "Uncategorized",
+                          })}
+                          size={50}
+                          bgColor="white"
+                          fgColor="#000000"
+                          level="H"
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-500">No QR</span>
+                    )}
+                  </td>
 
-                    {deps.map((dep, i) => (
-                      <td key={i} className="border p-1 text-right">
-                        {dep > 0 ? `₱${formatMoney(dep)}` : "-"}
-                      </td>
-                    ))}
+                  <td className="border p-2 whitespace-nowrap">
+                    <div className="flex gap-2">
+                      <button
+                        className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                        onClick={() => handleEdit(asset._id)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                        onClick={() => handleDelete(asset._id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
 
-                    <td className="border p-1 text-right font-semibold">
-                      ₱{formatMoney(periodTotal)}
-                    </td>
-                  </tr>
-                );
-              })}
-
-              <tr className="bg-black/10 font-bold">
-                <td colSpan={5} className="text-right p-1">
-                  TOTAL
-                </td>
-                <td colSpan={headerMonths.length}></td>
-                <td className="border p-1 text-right">
-                  ₱{formatMoney(totalPeriodDep)}
-                </td>
-              </tr>
+              {assets.length === 0 && (
+                <tr>
+                  <td colSpan={13} className="text-center p-3">
+                    No assets found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
+
+        {/* QR Preview Modal */}
+        {previewQR && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div
+              ref={modalRef}
+              className="relative bg-white p-6 rounded-lg flex flex-col items-center gap-4"
+            >
+              <button
+                className="absolute top-0 right-2 text-slate-500 hover:text-slate-800 dark:hover:text-white font-bold"
+                onClick={() => setPreviewQR(null)}
+              >
+                ×
+              </button>
+
+              <QRCodeCanvas
+                value={previewQR}
+                size={200}
+                bgColor="white"
+                fgColor="#000000"
+                level="H"
+              />
+
+              <p className="mt-2 text-center text-black text-sm font-medium">
+                Serial Number:{" "}
+                <span className="font-semibold">
+                  {JSON.parse(previewQR).serialNumber}
+                </span>
+              </p>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
 };
 
-export default AssetDepreciationDashboard;
+export default AssetDetailsTable;
