@@ -20,12 +20,11 @@ const months = [
   "Dec",
 ];
 
-// Fiscal quarters starting June
 const quarterMap = {
-  1: [5, 6, 7], // Jun, Jul, Aug
-  2: [8, 9, 10], // Sep, Oct, Nov
-  3: [11, 0, 1], // Dec, Jan, Feb
-  4: [2, 3, 4], // Mar, Apr, May
+  1: [5, 6, 7],
+  2: [8, 9, 10],
+  3: [11, 0, 1],
+  4: [2, 3, 4],
 };
 
 const fiscalMonths = [5, 6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4];
@@ -48,7 +47,7 @@ const getMonthlySchedule = (asset) => {
   let year = purchase.getFullYear();
 
   const firstMonthDep = Number(
-    (dailyRate * (30 - purchase.getDate() + 1)).toFixed(2)
+    (dailyRate * (30 - purchase.getDate() + 1)).toFixed(2),
   );
 
   schedule.push({ year, month, dep: firstMonthDep });
@@ -77,28 +76,84 @@ const getMonthlySchedule = (asset) => {
   return schedule;
 };
 
-// Fiscal year label (June-May)
-const getFiscalYearLabel = (year, month, fiscalStartMonth = 5) => {
-  return month >= fiscalStartMonth ? year : year - 1;
-};
+const getFiscalYearLabel = (year, month, fiscalStartMonth = 5) =>
+  month >= fiscalStartMonth ? year : year - 1;
 
 const getScheduleForQuarter = (schedule, fiscalYear, quarter) => {
   const qMonths = quarterMap[quarter];
   return qMonths.map((m) => {
     const entry = schedule.find(
-      (s) => getFiscalYearLabel(s.year, s.month) === fiscalYear && s.month === m
+      (s) =>
+        getFiscalYearLabel(s.year, s.month) === fiscalYear && s.month === m,
     );
     return entry ? entry.dep : 0;
   });
 };
 
-const getScheduleForFiscalYear = (schedule, fiscalYear) => {
-  return fiscalMonths.map((m) => {
+const getScheduleForFiscalYear = (schedule, fiscalYear) =>
+  fiscalMonths.map((m) => {
     const entry = schedule.find(
-      (s) => getFiscalYearLabel(s.year, s.month) === fiscalYear && s.month === m
+      (s) =>
+        getFiscalYearLabel(s.year, s.month) === fiscalYear && s.month === m,
     );
     return entry ? entry.dep : 0;
   });
+
+// ✅ Generate complete timeline from earliest to latest depreciation
+const getCompleteTimeline = (assets) => {
+  if (!assets || assets.length === 0) return [];
+
+  let earliestYear = new Date().getFullYear();
+  let earliestMonth = new Date().getMonth();
+  let latestYear = new Date().getFullYear();
+  let latestMonth = new Date().getMonth();
+
+  assets.forEach((asset) => {
+    const schedule = getMonthlySchedule(asset);
+    if (schedule.length > 0) {
+      const first = schedule[0];
+      const last = schedule[schedule.length - 1];
+
+      if (
+        first.year < earliestYear ||
+        (first.year === earliestYear && first.month < earliestMonth)
+      ) {
+        earliestYear = first.year;
+        earliestMonth = first.month;
+      }
+
+      if (
+        last.year > latestYear ||
+        (last.year === latestYear && last.month > latestMonth)
+      ) {
+        latestYear = last.year;
+        latestMonth = last.month;
+      }
+    }
+  });
+
+  const timeline = [];
+  let currentYear = earliestYear;
+  let currentMonth = earliestMonth;
+
+  while (
+    currentYear < latestYear ||
+    (currentYear === latestYear && currentMonth <= latestMonth)
+  ) {
+    timeline.push({
+      year: currentYear,
+      month: currentMonth,
+      label: `${months[currentMonth]} ${currentYear}`,
+    });
+
+    currentMonth++;
+    if (currentMonth > 11) {
+      currentMonth = 0;
+      currentYear++;
+    }
+  }
+
+  return timeline;
 };
 
 const AssetDepreciationDashboard = () => {
@@ -106,9 +161,13 @@ const AssetDepreciationDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [maxFiscalYear, setMaxFiscalYear] = useState(new Date().getFullYear());
   const [selectedFiscalYear, setSelectedFiscalYear] = useState(
-    new Date().getFullYear()
+    new Date().getFullYear(),
   );
   const [selectedQuarter, setSelectedQuarter] = useState("ALL");
+  const [selectedCategory, setSelectedCategory] = useState("ALL");
+
+  // ✅ NEW - Full Lifespan toggle
+  const [showFullLife, setShowFullLife] = useState(false);
 
   const formatMoney = (v) =>
     new Intl.NumberFormat("en-PH", {
@@ -135,7 +194,7 @@ const AssetDepreciationDashboard = () => {
             const lastMonth = schedule[schedule.length - 1];
             lastYear = Math.max(
               lastYear,
-              getFiscalYearLabel(lastMonth.year, lastMonth.month)
+              getFiscalYearLabel(lastMonth.year, lastMonth.month),
             );
           }
         });
@@ -149,73 +208,103 @@ const AssetDepreciationDashboard = () => {
     fetchAssets();
   }, []);
 
+  const categories = [
+    "ALL",
+    ...new Set(assets.map((a) => a.category).filter(Boolean)),
+  ];
+  const filteredAssets =
+    selectedCategory === "ALL"
+      ? assets
+      : assets.filter((a) => a.category === selectedCategory);
+
   const exportToExcel = async () => {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Depreciation");
+    sheet.views = [
+      {
+        state: "frozen",
+        xSplit: 5, // freeze first 5 columns (Particulars → Cost)
+        ySplit: 3, // freeze title + fiscal + header rows (optional but recommended)
+      },
+    ];
 
-    const headerMonths =
-      selectedQuarter === "ALL" ? fiscalMonths : quarterMap[selectedQuarter];
-    const totalColumns = 5 + headerMonths.length + 1;
+    // ✅ Use timeline for full life or regular months
+    let headerLabels = [];
+    if (showFullLife) {
+      const timeline = getCompleteTimeline(filteredAssets);
+      headerLabels = timeline.map((t) => t.label);
+    } else {
+      const headerMonths =
+        selectedQuarter === "ALL" ? fiscalMonths : quarterMap[selectedQuarter];
+      headerLabels = headerMonths.map((m) => months[m]);
+    }
 
-    // 1️⃣ Top Title
+    const totalColumns = 5 + headerLabels.length + 1;
+
     const titleRow = sheet.addRow(["Asset Depreciation Report"]);
     titleRow.font = { bold: true, size: 16 };
     sheet.mergeCells(1, 1, 1, totalColumns);
     titleRow.alignment = { horizontal: "center" };
+
     const fiscalRow = sheet.addRow([
-      `Fiscal Year: ${selectedFiscalYear}-${selectedFiscalYear + 1} ${
-        selectedQuarter !== "ALL"
-          ? `– Quarter: Q${selectedQuarter}`
-          : "(Full Fiscal Year)"
-      }`,
+      showFullLife
+        ? "Full Lifespan View"
+        : `Fiscal Year: ${selectedFiscalYear}-${selectedFiscalYear + 1} ${
+            selectedQuarter !== "ALL"
+              ? `– Quarter: Q${selectedQuarter}`
+              : "(Full Fiscal Year)"
+          }`,
     ]);
-
-    // Make it bold
     fiscalRow.font = { bold: true };
-
-    // Merge across all columns
     sheet.mergeCells(2, 1, 2, totalColumns);
-
-    // Center align the text
     fiscalRow.alignment = { horizontal: "center" };
-
-    // Apply yellow background
     fiscalRow.eachCell({ includeEmpty: true }, (cell) => {
       cell.fill = {
         type: "pattern",
         pattern: "solid",
-        fgColor: { argb: "FFFF00" }, // yellow
+        fgColor: { argb: "FFFF00" },
       };
     });
 
-    // 2️⃣ Table header
     const headers = [
       "Particulars",
       "Class",
       "Date",
       "Life",
       "Cost",
-      ...headerMonths.map((m) => months[m]),
+      ...headerLabels,
       "Total",
     ];
     const headerRow = sheet.addRow(headers);
     headerRow.font = { bold: true };
     headerRow.alignment = { horizontal: "center" };
 
-    // 3️⃣ Asset rows
-    assets.forEach((asset) => {
+    filteredAssets.forEach((asset) => {
       const schedule = getMonthlySchedule(asset);
-      const deps =
-        selectedQuarter === "ALL"
-          ? getScheduleForFiscalYear(schedule, selectedFiscalYear)
-          : getScheduleForQuarter(
-              schedule,
-              selectedFiscalYear,
-              Number(selectedQuarter)
-            );
+
+      let deps = [];
+      if (showFullLife) {
+        const timeline = getCompleteTimeline(filteredAssets);
+        deps = timeline.map((t) => {
+          const entry = schedule.find(
+            (s) => s.year === t.year && s.month === t.month,
+          );
+          return entry ? entry.dep : 0;
+        });
+      } else {
+        deps =
+          selectedQuarter === "ALL"
+            ? getScheduleForFiscalYear(schedule, selectedFiscalYear)
+            : getScheduleForQuarter(
+                schedule,
+                selectedFiscalYear,
+                Number(selectedQuarter),
+              );
+      }
+
       const periodTotal = deps.reduce((a, b) => a + b, 0);
 
-      const rowValues = [
+      const row = sheet.addRow([
         asset.assetName,
         asset.category,
         asset.purchaseDate
@@ -225,14 +314,12 @@ const AssetDepreciationDashboard = () => {
         asset.assetCost,
         ...deps,
         periodTotal,
-      ];
-      const row = sheet.addRow(rowValues);
+      ]);
 
-      // Format currency columns
       row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
         if (
-          [5, ...headerMonths.map((_, i) => 6 + i), totalColumns].includes(
-            colNumber
+          [5, ...headerLabels.map((_, i) => 6 + i), totalColumns].includes(
+            colNumber,
           )
         ) {
           cell.numFmt = "₱#,##0.00";
@@ -241,52 +328,67 @@ const AssetDepreciationDashboard = () => {
       });
     });
 
-    // 4️⃣ Total row
-    const totalDeps = assets.reduce((sum, asset) => {
+    const totalDeps = filteredAssets.reduce((sum, asset) => {
       const schedule = getMonthlySchedule(asset);
-      const deps =
-        selectedQuarter === "ALL"
-          ? getScheduleForFiscalYear(schedule, selectedFiscalYear)
-          : getScheduleForQuarter(
-              schedule,
-              selectedFiscalYear,
-              Number(selectedQuarter)
-            );
+      let deps = [];
+      if (showFullLife) {
+        const timeline = getCompleteTimeline(filteredAssets);
+        deps = timeline.map((t) => {
+          const entry = schedule.find(
+            (s) => s.year === t.year && s.month === t.month,
+          );
+          return entry ? entry.dep : 0;
+        });
+      } else {
+        deps =
+          selectedQuarter === "ALL"
+            ? getScheduleForFiscalYear(schedule, selectedFiscalYear)
+            : getScheduleForQuarter(
+                schedule,
+                selectedFiscalYear,
+                Number(selectedQuarter),
+              );
+      }
       return sum + deps.reduce((a, b) => a + b, 0);
     }, 0);
 
-    const totalRowValues = [
+    const totalRow = sheet.addRow([
       "TOTAL",
       "",
       "",
       "",
       "",
-      ...Array(headerMonths.length).fill(""),
+      ...Array(headerLabels.length).fill(""),
       totalDeps,
-    ];
-    const totalRow = sheet.addRow(totalRowValues);
+    ]);
+
     totalRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
       cell.fill = {
         type: "pattern",
         pattern: "solid",
-        fgColor: { argb: "FFFF00" }, // yellow
+        fgColor: { argb: "FFFF00" },
       };
       cell.font = { bold: true };
       cell.alignment = { horizontal: colNumber === 1 ? "left" : "right" };
-      if ([6 + headerMonths.length].includes(colNumber))
+      if ([6 + headerLabels.length].includes(colNumber))
         cell.numFmt = "₱#,##0.00";
     });
 
-    // 5️⃣ Adjust column widths
-    const widths = [25, 15, 12, 8, 15, ...headerMonths.map(() => 12), 15];
-    widths.forEach((w, i) => {
-      sheet.getColumn(i + 1).width = w;
+    const moneyCols = [5, ...headerLabels.map((_, i) => 6 + i), totalColumns];
+    moneyCols.forEach((col) => {
+      const column = sheet.getColumn(col);
+      if (!column.width || column.width < 11) {
+        column.width = 11;
+      }
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
+
     saveAs(
       new Blob([buffer]),
-      `AssetDepreciation_${selectedFiscalYear}_${selectedQuarter}.xlsx`
+      showFullLife
+        ? `AssetDepreciation_FullLifespan.xlsx`
+        : `AssetDepreciation_${selectedFiscalYear}_${selectedQuarter}.xlsx`,
     );
   };
 
@@ -298,26 +400,32 @@ const AssetDepreciationDashboard = () => {
     );
 
   let totalPeriodDep = 0;
-  const headerMonths =
-    selectedQuarter === "ALL" ? fiscalMonths : quarterMap[selectedQuarter];
+
+  // ✅ Use timeline for full life or regular months
+  const timeline = showFullLife ? getCompleteTimeline(filteredAssets) : null;
+  const headerMonths = showFullLife
+    ? null
+    : selectedQuarter === "ALL"
+      ? fiscalMonths
+      : quarterMap[selectedQuarter];
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark dark:text-gray-300">
-      {/* <Header /> */}
+    <div className="min-h-screen bg-background-light w-scree dark:bg-background-dark dark:text-gray-300">
       <main className="px-3 py-4">
-        <h1 className="text-lg font-bold mb-3">Asset Depreciation </h1>
+        <h1 className="text-lg font-bold mb-3">Asset Depreciation</h1>
 
-        <div className="flex gap-4 mb-3 text-sm">
+        <div className="flex gap-4 mb-3 text-sm flex-wrap">
           <div>
             <label className="mr-1 font-semibold">Fiscal Year:</label>
             <select
               value={selectedFiscalYear}
               onChange={(e) => setSelectedFiscalYear(Number(e.target.value))}
               className="border px-2 py-1"
+              disabled={showFullLife}
             >
               {Array.from(
                 { length: maxFiscalYear - 2020 + 1 },
-                (_, i) => 2020 + i
+                (_, i) => 2020 + i,
               ).map((y) => (
                 <option key={y} value={y}>
                   {y}-{y + 1}
@@ -332,8 +440,9 @@ const AssetDepreciationDashboard = () => {
               value={selectedQuarter}
               onChange={(e) => setSelectedQuarter(e.target.value)}
               className="border px-2 py-1"
+              disabled={showFullLife}
             >
-              <option value="ALL"> Fiscal Year</option>
+              <option value="ALL">Fiscal Year</option>
               {[1, 2, 3, 4].map((q) => (
                 <option key={q} value={q}>
                   Q{q}
@@ -341,6 +450,31 @@ const AssetDepreciationDashboard = () => {
               ))}
             </select>
           </div>
+
+          <div>
+            <label className="mr-1 font-semibold">Category:</label>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="border px-2 py-1"
+            >
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* ✅ NEW - Full Lifespan Checkbox */}
+          <label className="flex items-center gap-1 font-semibold">
+            <input
+              type="checkbox"
+              checked={showFullLife}
+              onChange={(e) => setShowFullLife(e.target.checked)}
+            />
+            Full Lifespan
+          </label>
 
           <button
             onClick={exportToExcel}
@@ -350,17 +484,26 @@ const AssetDepreciationDashboard = () => {
           </button>
         </div>
 
-        <div className="overflow-x-auto w-full px-4">
+        <div className="overflow-x-scroll w-full px-4">
           <table className="w-full text-[11px] border-collapse">
             <thead>
               <tr className="bg-black/10">
                 <th colSpan={5}></th>
                 <th
-                  colSpan={headerMonths.length}
+                  colSpan={
+                    showFullLife ? timeline?.length || 0 : headerMonths.length
+                  }
                   className="border bg-yellow-300 text-center"
                 >
-                  Fiscal Year {selectedFiscalYear}-{selectedFiscalYear + 1}
-                  {selectedQuarter !== "ALL" && ` – Q${selectedQuarter}`}
+                  {showFullLife
+                    ? "Full Lifespan View"
+                    : `Fiscal Year ${selectedFiscalYear}-${
+                        selectedFiscalYear + 1
+                      }${
+                        selectedQuarter !== "ALL"
+                          ? ` – Q${selectedQuarter}`
+                          : ""
+                      }`}
                 </th>
                 <th className="border">Total</th>
               </tr>
@@ -369,58 +512,90 @@ const AssetDepreciationDashboard = () => {
                   (h, i) => (
                     <th
                       key={i}
-                      className="sticky z-30 bg-white outline outline-1 p-1"
+                      className="sticky bg-white outline outline-1 p-1"
+                      style={{ left: `${i * 0}px`, zIndex: 30 }} // added left & z-index
                     >
                       {h}
                     </th>
-                  )
+                  ),
                 )}
 
-                {headerMonths.map((m) => (
-                  <th key={m} className="border p-1 w-[70px]">
-                    {months[m]}
-                  </th>
-                ))}
+                {showFullLife
+                  ? timeline?.map((t, i) => (
+                      <th key={i} className="border p-1 w-[70px]">
+                        {t.label}
+                      </th>
+                    ))
+                  : headerMonths.map((m) => (
+                      <th key={m} className="border p-1 w-[70px]">
+                        {months[m]}
+                      </th>
+                    ))}
 
                 <th className="border p-1">-</th>
               </tr>
             </thead>
 
             <tbody>
-              {assets.map((asset) => {
+              {filteredAssets.map((asset) => {
                 const schedule = getMonthlySchedule(asset);
 
-                const deps =
-                  selectedQuarter === "ALL"
-                    ? getScheduleForFiscalYear(schedule, selectedFiscalYear)
-                    : getScheduleForQuarter(
-                        schedule,
-                        selectedFiscalYear,
-                        Number(selectedQuarter)
-                      );
+                let deps = [];
+                if (showFullLife) {
+                  deps = timeline.map((t) => {
+                    const entry = schedule.find(
+                      (s) => s.year === t.year && s.month === t.month,
+                    );
+                    return entry ? entry.dep : 0;
+                  });
+                } else {
+                  deps =
+                    selectedQuarter === "ALL"
+                      ? getScheduleForFiscalYear(schedule, selectedFiscalYear)
+                      : getScheduleForQuarter(
+                          schedule,
+                          selectedFiscalYear,
+                          Number(selectedQuarter),
+                        );
+                }
 
                 const periodTotal = deps.reduce((a, b) => a + b, 0);
                 totalPeriodDep += periodTotal;
 
                 return (
                   <tr key={asset._id}>
-                    <td className=" bg-white outline outline-1 p-1">
+                    <td
+                      className="bg-white outline outline-1 p-1"
+                      style={{ left: "0px", zIndex: 20, position: "sticky" }}
+                    >
                       {asset.assetName}
                     </td>
-                    <td className=" bg-white outline outline-1 p-1">
+                    <td
+                      className="bg-white outline outline-1 p-1"
+                      style={{ left: "60px", zIndex: 20, position: "sticky" }}
+                    >
                       {asset.category}
                     </td>
-                    <td className=" bg-white outline outline-1 p-1">
+                    <td
+                      className="bg-white outline outline-1 p-1"
+                      style={{ left: "120px", zIndex: 20, position: "sticky" }}
+                    >
                       {asset.purchaseDate
                         ? new Date(asset.purchaseDate).toLocaleDateString(
-                            "en-PH"
+                            "en-PH",
                           )
                         : "-"}
                     </td>
-                    <td className=" bg-white outline outline-1 p-1 text-center">
+                    <td
+                      className="bg-white outline outline-1 p-1 text-center"
+                      style={{ left: "200", zIndex: 20, position: "sticky" }}
+                    >
                       {asset.lifeSpan}
                     </td>
-                    <td className=" bg-white outline outline-1 p-1">
+                    <td
+                      className="bg-white outline outline-1 p-1"
+                      style={{ left: "320", zIndex: 20, position: "sticky" }}
+                    >
                       ₱{formatMoney(asset.assetCost)}
                     </td>
 
@@ -441,7 +616,11 @@ const AssetDepreciationDashboard = () => {
                 <td colSpan={5} className="text-right p-1">
                   TOTAL
                 </td>
-                <td colSpan={headerMonths.length}></td>
+                <td
+                  colSpan={
+                    showFullLife ? timeline?.length || 0 : headerMonths.length
+                  }
+                ></td>
                 <td className="border p-1 text-right">
                   ₱{formatMoney(totalPeriodDep)}
                 </td>

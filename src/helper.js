@@ -60,7 +60,6 @@ function buildMonthlySchedule(asset) {
 /* ================================
    Fetch Asset Stats
 ================================ */
-
 export const fetchAssetStats = async () => {
   try {
     const res = await fetch(`${API_BASE_URL}/api/asset/get/all`, {
@@ -71,36 +70,41 @@ export const fetchAssetStats = async () => {
     });
 
     const assets = await res.json();
-
     const totalAssets = assets.length;
 
-    const fullyDepreciated = assets.filter(
-      (a) => a.lifeSpan === 0 || a.status?.toLowerCase() === "fully depreciated"
-    ).length;
-
-    const newAssets = assets.filter((a) => {
-      const created = new Date(a.purchaseDate || a.createdAt);
-      const now = new Date();
-      const diffDays = (now - created) / (1000 * 60 * 60 * 24);
-      return diffDays <= 15; // <-- only change
-    }).length;
-
+    let fullyDepreciated = 0;
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
     let totalDepreciation = 0;
+    let monthlyMap = {};
+
+    const newAssets = assets.filter((a) => {
+      const created = new Date(a.purchaseDate || a.createdAt);
+      const diffDays = (now - created) / (1000 * 60 * 60 * 24);
+      return diffDays <= 15;
+    }).length;
 
     assets.forEach((asset) => {
       const schedule = buildMonthlySchedule(asset);
 
-      const currentEntry = schedule.find(
-        (m) => m.month === currentMonth && m.year === currentYear
-      );
-
-      if (currentEntry) {
-        totalDepreciation += currentEntry.value;
+      // ---- Calculate fully depreciated ----
+      const totalDep = schedule.reduce((sum, m) => sum + m.value, 0);
+      if (totalDep >= Number(asset.assetCost || 0)) {
+        fullyDepreciated++;
       }
+
+      // ---- Build monthly map for charts ----
+      schedule.forEach((m) => {
+        const key = `${m.year}-${m.month}`;
+        monthlyMap[key] = (monthlyMap[key] || 0) + m.value;
+
+        // Current month depreciation
+        if (m.year === currentYear && m.month === currentMonth) {
+          totalDepreciation += m.value;
+        }
+      });
     });
 
     return {
@@ -108,14 +112,18 @@ export const fetchAssetStats = async () => {
       fullyDepreciated,
       newAssets,
       totalDepreciation: Number(totalDepreciation.toFixed(2)),
+      monthlyMap,
+      assets,
     };
   } catch (err) {
-    console.error("Error fetching asset stats:", err);
+    console.error(err);
     return {
       totalAssets: 0,
       fullyDepreciated: 0,
       newAssets: 0,
       totalDepreciation: 0,
+      monthlyMap: {},
+      assets: [],
     };
   }
 };

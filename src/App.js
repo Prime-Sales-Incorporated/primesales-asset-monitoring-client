@@ -25,6 +25,7 @@ import AssetDepreciationDashboard from "./admin/pages/asset-depr";
 import AssetDetailsTable from "./admin/pages/asset-list";
 import Sidebar from "./user/components/sidebar";
 import { useLocation } from "react-router-dom";
+import AssetInventory from "./admin/pages/inventory-revamp";
 function AppLayout() {
   const location = useLocation();
 
@@ -40,7 +41,7 @@ function AppLayout() {
   const hideSidebar = hideSidebarRoutes.includes(location.pathname);
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen overflow-x-hidden">
       {!hideSidebar && <Sidebar />}
 
       <div className="flex-1">
@@ -79,6 +80,14 @@ function AppLayout() {
             }
           />
 
+          <Route
+            path="/inv"
+            element={
+              <PrivateRoute>
+                <AssetInventory />
+              </PrivateRoute>
+            }
+          />
           <Route
             path="/assets/list"
             element={

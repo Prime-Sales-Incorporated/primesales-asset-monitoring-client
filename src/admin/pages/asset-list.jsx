@@ -142,7 +142,7 @@ const AssetDetailsTable = () => {
                             JSON.stringify({
                               serialNumber: asset.serialNumber,
                               category: asset.category || "Uncategorized",
-                            })
+                            }),
                           )
                         }
                       >
