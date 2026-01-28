@@ -84,7 +84,7 @@ function AppLayout() {
             path="/inv"
             element={
               <PrivateRoute>
-                <AssetInventory />
+                <AssetDetailsTable />
               </PrivateRoute>
             }
           />
@@ -92,7 +92,7 @@ function AppLayout() {
             path="/assets/list"
             element={
               <PrivateRoute>
-                <AssetDetailsTable />
+                <AssetInventory />
               </PrivateRoute>
             }
           />

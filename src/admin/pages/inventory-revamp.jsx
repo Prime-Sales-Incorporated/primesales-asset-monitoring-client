@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import API_BASE_URL from "../../API"; // Adjust path if needed
 import { QRCodeCanvas } from "qrcode.react";
+import { Link } from "react-router-dom";
 
 const categoryIcons = {
   Electronics: "💻",
@@ -8,10 +9,11 @@ const categoryIcons = {
   Vehicles: "🚗",
   Logistics: "🚜",
   Furniture: "🪑",
-  Office: "📁",
+  "Office Supplies": "📁",
   Tools: "🔧",
   Misc: "📦",
   Uncategorized: "❓",
+  Building: "🏢",
 };
 
 const statusColors = {
@@ -30,6 +32,8 @@ const AssetInventory = () => {
   const [loading, setLoading] = useState(true);
   const [previewQR, setPreviewQR] = useState(null);
   const modalRef = useRef(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
 
   const toggleDarkMode = () => {
     document.documentElement.classList.toggle("dark");
@@ -97,6 +101,22 @@ const AssetInventory = () => {
       </div>
     );
   }
+  const filteredAssets = assets.filter((asset) => {
+    const matchesSerial = asset.serialNumber
+      ?.toLowerCase()
+      .includes(searchTerm.toLowerCase());
+
+    const matchesCategory =
+      selectedCategory === "All" ||
+      (asset.category || "Uncategorized") === selectedCategory;
+
+    return matchesSerial && matchesCategory;
+  });
+
+  const categories = [
+    "All",
+    ...new Set(assets.map((asset) => asset.category || "Uncategorized")),
+  ];
 
   return (
     <main className="p-8 bg-slate-50 dark:bg-slate-900 min-h-screen">
@@ -112,13 +132,27 @@ const AssetInventory = () => {
         </div>
 
         <div className="flex items-center gap-4">
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-3 py-2 rounded-xl bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 text-sm"
+          >
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+
           <div className="relative">
             <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
               search
             </span>
             <input
               type="text"
-              placeholder="Search assets..."
+              placeholder="Search by serial number..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 rounded-xl bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-blue-500 w-64 text-sm"
             />
           </div>
@@ -137,7 +171,7 @@ const AssetInventory = () => {
 
       {/* Asset Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {assets.map((asset) => (
+        {filteredAssets.map((asset) => (
           <AssetCard
             key={asset._id}
             icon={
@@ -166,7 +200,11 @@ const AssetInventory = () => {
         ))}
 
         {/* Register New Asset */}
-        <button className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-blue-500 transition-all flex flex-col items-center justify-center p-8 gap-4 min-h-[300px]">
+
+        <Link
+          to="/assets/add"
+          className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-blue-500 transition-all flex flex-col items-center justify-center p-8 gap-4 min-h-[300px]"
+        >
           <div className="w-16 h-16 rounded-full bg-white dark:bg-slate-800 shadow-sm border flex items-center justify-center text-slate-400">
             <span className="material-icons-round text-3xl">add</span>
           </div>
@@ -178,7 +216,7 @@ const AssetInventory = () => {
               Click here to add to inventory
             </p>
           </div>
-        </button>
+        </Link>
       </div>
 
       {/* QR Preview Modal */}
@@ -252,10 +290,6 @@ const AssetCard = ({
           </span>
         </div>
 
-        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-2">
-          {description}
-        </p>
-
         <div className="grid grid-cols-2 gap-y-3 mb-4 text-sm">
           <div>
             <p className="text-[10px] uppercase font-bold text-slate-400">
@@ -273,7 +307,7 @@ const AssetCard = ({
             <p className="text-[10px] uppercase font-bold text-slate-400">
               Cost
             </p>
-            <p className="font-bold text-blue-600">{cost}</p>
+            <p className="font-bold text-green-500">{cost}</p>
           </div>
           <div>
             <p className="text-[10px] uppercase font-bold text-slate-400">

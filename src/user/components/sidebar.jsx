@@ -83,6 +83,7 @@ const Sidebar = () => {
           </span>
           <span className="font-medium text-sm">Scan</span>
         </Link>
+
         {/* 
         <div className="px-6 pt-6 pb-2">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
