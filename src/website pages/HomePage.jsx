@@ -49,42 +49,6 @@ const WebsiteMain = () => {
             ></div>
           </div>
           {/* Navigation Links */}
-          <div className="flex items-center gap-8 text-white/90 font-sans text-sm font-light">
-            <a
-              href="#"
-              className="hover:text-white hover:scale-105 transition-all duration-300"
-            >
-              Our Mission
-            </a>
-            <a
-              href="#"
-              className="hover:text-white hover:scale-105 transition-all duration-300"
-            >
-              Services
-            </a>
-            <a
-              href="#"
-              className="hover:text-white hover:scale-105 transition-all duration-300"
-            >
-              Products
-            </a>
-            <a
-              href="#"
-              className="hover:text-white hover:scale-105 transition-all duration-300"
-            >
-              Support Us
-            </a>
-            <a
-              href="#"
-              className="hover:text-white hover:scale-105 transition-all duration-300"
-            >
-              Contact
-            </a>
-            <button className="flex items-center gap-1 hover:text-white hover:scale-105 transition-all duration-300 cursor-pointer">
-              EN
-              <ChevronDown size={14} />
-            </button>
-          </div>
         </div>
       </nav>
 
