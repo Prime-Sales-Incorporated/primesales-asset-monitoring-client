@@ -41,10 +41,12 @@ function AppLayout() {
   const hideSidebar = hideSidebarRoutes.includes(location.pathname);
 
   return (
-    <div className="flex min-h-screen overflow-x-hidden">
+    <div className="flex min-h-screen">
+      {/* Sidebar stays fixed */}
       {!hideSidebar && <Sidebar />}
 
-      <div className="flex-1">
+      {/* Right content scrolls independently */}
+      <div className="flex-1 h-screen overflow-auto">
         <Toaster position="top-right" />
 
         <Routes>
@@ -70,7 +72,6 @@ function AppLayout() {
               </PrivateRoute>
             }
           />
-
           <Route
             path="/dashboard"
             element={
@@ -79,7 +80,6 @@ function AppLayout() {
               </PrivateRoute>
             }
           />
-
           <Route
             path="/inv"
             element={
@@ -96,7 +96,6 @@ function AppLayout() {
               </PrivateRoute>
             }
           />
-
           <Route
             path="/assets/depreciation"
             element={
@@ -105,7 +104,6 @@ function AppLayout() {
               </PrivateRoute>
             }
           />
-
           <Route
             path="/assets/add"
             element={
@@ -114,7 +112,6 @@ function AppLayout() {
               </PrivateRoute>
             }
           />
-
           <Route
             path="/trans"
             element={

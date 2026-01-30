@@ -17,7 +17,7 @@ const Header = () => {
   }, [dark]);
 
   return (
-    <header className="flex items-center justify-between border-b border-background-light/20 dark:border-background-dark/20 px-4 py-3">
+    <header className="flex items-center justify-between border-b h-screen border-background-light/20 dark:border-background-dark/20 px-4 py-3">
       {/* Logo */}
       <Link to="/" className="flex items-center gap-0">
         <div className="h-6 w-6">

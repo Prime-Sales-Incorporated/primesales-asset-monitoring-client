@@ -179,6 +179,8 @@ const AssetInventory = () => {
             }
             title={asset.assetName}
             category={asset.category || "Uncategorized"}
+            purchaseDate={asset.purchaseDate}
+            issueDate={asset.issuedDate}
             status={asset.status || "Unknown"}
             statusColor={statusColors[asset.status] || "gray"}
             description={asset.description || "No description available."}
@@ -203,7 +205,7 @@ const AssetInventory = () => {
 
         <Link
           to="/assets/add"
-          className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-blue-500 transition-all flex flex-col items-center justify-center p-8 gap-4 min-h-[300px]"
+          className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-blue-500 transition-all flex flex-col items-center justify-center p-8 gap-4 min-h-[280px]"
         >
           <div className="w-16 h-16 rounded-full bg-white dark:bg-slate-800 shadow-sm border flex items-center justify-center text-slate-400">
             <span className="material-icons-round text-3xl">add</span>
@@ -260,6 +262,8 @@ const AssetCard = ({
   description,
   serial,
   issued,
+  issueDate,
+  purchaseDate,
   cost,
   life,
   qrValue,
@@ -269,7 +273,7 @@ const AssetCard = ({
 }) => {
   const color = statusColors[status] || "gray"; // ✅ move it here
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all overflow-hidden">
+    <div className="bg-white overflow-auto dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all overflow-">
       <div className="p-6">
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-4">
@@ -305,6 +309,21 @@ const AssetCard = ({
           </div>
           <div>
             <p className="text-[10px] uppercase font-bold text-slate-400">
+              Purchased Date
+            </p>
+            <p>
+              {purchaseDate ? new Date(purchaseDate).toLocaleDateString() : "-"}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase font-bold text-slate-400">
+              Issue Date
+            </p>
+            <p>{issueDate ? new Date(issueDate).toLocaleDateString() : "-"}</p>
+          </div>
+
+          <div>
+            <p className="text-[10px] uppercase font-bold text-slate-400">
               Cost
             </p>
             <p className="font-bold text-green-500">{cost}</p>
@@ -313,7 +332,7 @@ const AssetCard = ({
             <p className="text-[10px] uppercase font-bold text-slate-400">
               Life Span
             </p>
-            <p>{life}</p>
+            <p>{life} month(s)</p>
           </div>
         </div>
 

@@ -9,7 +9,7 @@ const Sidebar = () => {
   const isActive = (path) => currentPath === path;
 
   return (
-    <aside className="w-44 bg-slate-950 text-slate-300 hidden md:flex flex-col shrink-0">
+    <aside className="w-44 bg-slate-950 h-screen text-slate-300 hidden md:flex flex-col shrink-0">
       <Link to="/" className="flex items-center justify-center py-4 gap-0">
         <div className="h-6 w-6">
           <img src="/psi.png" alt="Logo" />

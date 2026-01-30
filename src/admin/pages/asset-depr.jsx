@@ -35,13 +35,14 @@ const fiscalMonths = [5, 6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4];
 // ================= Helpers =================
 const getMonthlySchedule = (asset) => {
   const cost = Number(asset.assetCost) || 0;
-  const life = Number(asset.lifeSpan) || 1;
+  const life = Number(asset.lifeSpan) || 1; // NOW months
+
   if (!asset.purchaseDate || cost <= 0 || life <= 0) return [];
 
   const purchase = new Date(asset.purchaseDate);
   if (isNaN(purchase)) return [];
 
-  const standardMonthly = cost / (life * 12);
+  const standardMonthly = cost / life; // ✅ months logic
   const dailyRate = standardMonthly / 30;
 
   let schedule = [];
@@ -49,22 +50,32 @@ const getMonthlySchedule = (asset) => {
   let month = purchase.getMonth();
   let year = purchase.getFullYear();
 
+  // First partial month
   const firstMonthDep = Number(
     (dailyRate * (30 - purchase.getDate() + 1)).toFixed(2),
   );
+
   schedule.push({ year, month, dep: firstMonthDep });
   accumulated += firstMonthDep;
 
+  // Full months
   while (accumulated + standardMonthly < cost) {
     month++;
     if (month > 11) {
       month = 0;
       year++;
     }
-    schedule.push({ year, month, dep: Number(standardMonthly.toFixed(2)) });
+
+    schedule.push({
+      year,
+      month,
+      dep: Number(standardMonthly.toFixed(2)),
+    });
+
     accumulated += standardMonthly;
   }
 
+  // Last remainder
   const remaining = Number((cost - accumulated).toFixed(2));
   if (remaining > 0) {
     month++;
@@ -163,7 +174,7 @@ const AssetDepreciationDashboard = () => {
   const [showFullLife, setShowFullLife] = useState(false);
 
   // Define widths including padding if needed
-  const stickyCols = [110, 95, 103, 57, 120]; // px
+  const stickyCols = [118, 80, 97, 57, 120]; // px
   const leftOffsets = stickyCols.reduce((acc, w, i) => {
     acc.push(i === 0 ? 0 : acc[i - 1] + stickyCols[i - 1]);
     return acc;
@@ -224,9 +235,166 @@ const AssetDepreciationDashboard = () => {
   let totalPeriodDep = 0;
 
   const exportToExcel = async () => {
-    // keep your existing exportToExcel implementation
-    alert(
-      "Excel export still uses your existing logic – keep your current function here.",
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Depreciation");
+
+    sheet.views = [
+      {
+        state: "frozen",
+        xSplit: 5, // freeze first 5 columns
+        ySplit: 3, // freeze title + fiscal + header
+      },
+    ];
+
+    // Prepare headers
+    let headerLabels = [];
+    if (showFullLife) {
+      const tl = getCompleteTimeline(filteredAssets);
+      headerLabels = tl.map((t) => t.label);
+    } else {
+      const hm =
+        selectedQuarter === "ALL" ? fiscalMonths : quarterMap[selectedQuarter];
+      headerLabels = hm.map((m) => months[m]);
+    }
+
+    const totalColumns = 5 + headerLabels.length + 1;
+
+    const titleRow = sheet.addRow(["Asset Depreciation Report"]);
+    titleRow.font = { bold: true, size: 16 };
+    sheet.mergeCells(1, 1, 1, totalColumns);
+    titleRow.alignment = { horizontal: "center" };
+
+    const fiscalRow = sheet.addRow([
+      showFullLife
+        ? "Full Lifespan View"
+        : `Fiscal Year: ${selectedFiscalYear}-${selectedFiscalYear + 1} ${selectedQuarter !== "ALL" ? `– Quarter: Q${selectedQuarter}` : "(Full Fiscal Year)"}`,
+    ]);
+    fiscalRow.font = { bold: true };
+    sheet.mergeCells(2, 1, 2, totalColumns);
+    fiscalRow.alignment = { horizontal: "center" };
+    fiscalRow.eachCell({ includeEmpty: true }, (cell) => {
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFFF00" },
+      };
+    });
+
+    const headers = [
+      "Particulars",
+      "Class",
+      "Date",
+      "Life",
+      "Cost",
+      ...headerLabels,
+      "Total",
+    ];
+    const headerRow = sheet.addRow(headers);
+    headerRow.font = { bold: true };
+    headerRow.alignment = { horizontal: "center" };
+
+    filteredAssets.forEach((asset) => {
+      const schedule = getMonthlySchedule(asset);
+      let deps = [];
+      if (showFullLife) {
+        const tl = getCompleteTimeline(filteredAssets);
+        deps = tl.map((t) => {
+          const e = schedule.find(
+            (s) => s.year === t.year && s.month === t.month,
+          );
+          return e ? e.dep : 0;
+        });
+      } else {
+        deps =
+          selectedQuarter === "ALL"
+            ? getScheduleForFiscalYear(schedule, selectedFiscalYear)
+            : getScheduleForQuarter(
+                schedule,
+                selectedFiscalYear,
+                Number(selectedQuarter),
+              );
+      }
+      const periodTotal = deps.reduce((a, b) => a + b, 0);
+      const row = sheet.addRow([
+        asset.assetName,
+        asset.category,
+        asset.purchaseDate
+          ? new Date(asset.purchaseDate).toLocaleDateString("en-PH")
+          : "-",
+        asset.lifeSpan,
+        asset.assetCost,
+        ...deps,
+        periodTotal,
+      ]);
+      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        if (
+          [5, ...headerLabels.map((_, i) => 6 + i), totalColumns].includes(
+            colNumber,
+          )
+        ) {
+          cell.numFmt = "₱#,##0.00";
+          cell.alignment = { horizontal: "right" };
+        }
+      });
+    });
+
+    const totalDeps = filteredAssets.reduce((sum, asset) => {
+      const schedule = getMonthlySchedule(asset);
+      let deps = [];
+      if (showFullLife) {
+        const tl = getCompleteTimeline(filteredAssets);
+        deps = tl.map((t) => {
+          const e = schedule.find(
+            (s) => s.year === t.year && s.month === t.month,
+          );
+          return e ? e.dep : 0;
+        });
+      } else {
+        deps =
+          selectedQuarter === "ALL"
+            ? getScheduleForFiscalYear(schedule, selectedFiscalYear)
+            : getScheduleForQuarter(
+                schedule,
+                selectedFiscalYear,
+                Number(selectedQuarter),
+              );
+      }
+      return sum + deps.reduce((a, b) => a + b, 0);
+    }, 0);
+
+    const totalRow = sheet.addRow([
+      "TOTAL",
+      "",
+      "",
+      "",
+      "",
+      ...Array(headerLabels.length).fill(""),
+      totalDeps,
+    ]);
+    totalRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFFF00" },
+      };
+      cell.font = { bold: true };
+      cell.alignment = { horizontal: colNumber === 1 ? "left" : "right" };
+      if ([6 + headerLabels.length].includes(colNumber))
+        cell.numFmt = "₱#,##0.00";
+    });
+
+    const moneyCols = [5, ...headerLabels.map((_, i) => 6 + i), totalColumns];
+    moneyCols.forEach((col) => {
+      const column = sheet.getColumn(col);
+      if (!column.width || column.width < 11) column.width = 11;
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    saveAs(
+      new Blob([buffer]),
+      showFullLife
+        ? "AssetDepreciation_FullLifespan.xlsx"
+        : `AssetDepreciation_${selectedFiscalYear}_${selectedQuarter}.xlsx`,
     );
   };
 
@@ -335,7 +503,7 @@ const AssetDepreciationDashboard = () => {
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3"
                       style={{ left: leftOffsets[3], width: stickyCols[3] }}
                     >
-                      Life
+                      Life mos.
                     </th>
                     <th
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3"

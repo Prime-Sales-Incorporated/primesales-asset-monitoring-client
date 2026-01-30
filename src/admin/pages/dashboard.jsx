@@ -171,7 +171,7 @@ const MainDashboard = () => {
 
   return (
     <>
-      <div className="text-xl p-4 font-semibold">Dashboard</div>
+      <div className="text-2xl p-4 font-bold">Dashboard</div>
 
       <section className="grid grid-cols-1 md:grid-cols-4 gap-6 p-6">
         <StatCard title="Total Assets" value={stats.totalAssets} />
