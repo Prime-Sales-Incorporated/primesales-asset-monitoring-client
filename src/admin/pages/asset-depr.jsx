@@ -596,7 +596,7 @@ const AssetDepreciationDashboard = () => {
                           </td>
                         ))}
 
-                        <td className="px-4 py-3 text-right font-bold text-blue-600">
+                        <td className="px-4 py-3 text-right font-bold text-green-500">
                           ₱{formatMoney(periodTotal)}
                         </td>
                       </tr>
@@ -614,7 +614,7 @@ const AssetDepreciationDashboard = () => {
                         showFullLife ? timeline.length : headerMonths.length
                       }
                     ></td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right text-green-500">
                       ₱{formatMoney(totalPeriodDep)}
                     </td>
                   </tr>

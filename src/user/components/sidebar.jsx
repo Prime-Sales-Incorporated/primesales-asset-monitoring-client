@@ -9,7 +9,7 @@ const Sidebar = () => {
   const isActive = (path) => currentPath === path;
 
   return (
-    <aside className="w-44 bg-slate-950 h-screen text-slate-300 hidden md:flex flex-col shrink-0">
+    <aside className="w-56 bg-slate-950 h-screen text-slate-300 hidden md:flex flex-col shrink-0">
       <Link to="/" className="flex items-center justify-center py-4 gap-0">
         <div className="h-6 w-6">
           <img src="/psi.png" alt="Logo" />
@@ -26,9 +26,7 @@ const Sidebar = () => {
               : "hover:bg-slate-900 hover:text-white"
           }`}
         >
-          <span className="material-icons-outlined text-lg mr-3">
-            dashboard
-          </span>
+          <img src="/dashboard.png" className="size-10 text-lg mr-2" />
           <span className="font-medium text-sm">Overview</span>
         </Link>
         <Link
@@ -39,7 +37,7 @@ const Sidebar = () => {
               : "hover:bg-slate-900 hover:text-white"
           }`}
         >
-          <span class="material-symbols-outlined text-lg mr-3">box_add</span>
+          <img src="/addinv.png" className="size-10 text-lg mr-2" />
           <span className="font-medium text-sm">Add Asset</span>
         </Link>
         <Link
@@ -50,9 +48,7 @@ const Sidebar = () => {
               : "hover:bg-slate-900 hover:text-white"
           }`}
         >
-          <span className="material-icons-outlined text-lg mr-3">
-            inventory_2
-          </span>
+          <img src="/inventory.png" className="size-10 text-lg mr-2" />
           <span className="font-medium text-sm">Inventory</span>
         </Link>
 
@@ -64,12 +60,21 @@ const Sidebar = () => {
               : "hover:bg-slate-900 hover:text-white"
           }`}
         >
-          <span className="material-icons-outlined text-lg mr-3">
-            trending_down
-          </span>
+          <img src="/depr.png" className="size-10 text-lg mr-2" />
           <span className="font-medium text-sm">Depreciation</span>
         </Link>
+        <Link
+          to="/assets/rentals"
+          className={`flex items-center px-6 py-3 transition-colors ${
+            isActive("/assets/rentals")
+              ? "text-primary bg-primary/10 border-r-4 border-primary"
+              : "hover:bg-slate-900 hover:text-white"
+          }`}
+        >
+          <img src="/forklift.png" className="size-10 text-lg mr-2" />
 
+          <span className="font-medium text-sm">Rentals</span>
+        </Link>
         <Link
           to="/scanner"
           className={`flex items-center px-6 py-3 transition-colors ${
@@ -78,9 +83,7 @@ const Sidebar = () => {
               : "hover:bg-slate-900 hover:text-white"
           }`}
         >
-          <span className="material-icons-outlined text-lg mr-3">
-            qr_code_scanner
-          </span>
+          <img src="/scan.png" className="size-10 text-lg mr-2" />
           <span className="font-medium text-sm">Scan</span>
         </Link>
 
