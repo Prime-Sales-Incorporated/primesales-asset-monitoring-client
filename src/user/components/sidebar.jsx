@@ -26,7 +26,7 @@ const Sidebar = () => {
               : "hover:bg-slate-900 hover:text-white"
           }`}
         >
-          <img src="/dashboard.png" className="size-10 text-lg mr-2" />
+          <img src="/layout12.png" className="size-10 text-lg mr-2" />
           <span className="font-medium text-sm">Overview</span>
         </Link>
         <Link
@@ -37,7 +37,7 @@ const Sidebar = () => {
               : "hover:bg-slate-900 hover:text-white"
           }`}
         >
-          <img src="/addinv.png" className="size-10 text-lg mr-2" />
+          <img src="/box.png" className="size-10 text-lg mr-2" />
           <span className="font-medium text-sm">Add Asset</span>
         </Link>
         <Link
@@ -48,7 +48,7 @@ const Sidebar = () => {
               : "hover:bg-slate-900 hover:text-white"
           }`}
         >
-          <img src="/inventory.png" className="size-10 text-lg mr-2" />
+          <img src="/inv1.png" className="size-10 text-lg mr-2" />
           <span className="font-medium text-sm">Inventory</span>
         </Link>
 
@@ -73,7 +73,18 @@ const Sidebar = () => {
         >
           <img src="/forklift.png" className="size-10 text-lg mr-2" />
 
-          <span className="font-medium text-sm">Rentals</span>
+          <span className="font-medium text-sm">Units</span>
+        </Link>
+        <Link
+          to="/reports"
+          className={`flex items-center px-6 py-3 transition-colors ${
+            isActive("/reports")
+              ? "text-primary bg-primary/10 border-r-4 border-primary"
+              : "hover:bg-slate-900 hover:text-white"
+          }`}
+        >
+          <img src="/analyt.png" className="size-10 text-lg mr-2" />
+          <span className="font-medium text-sm">Reports</span>
         </Link>
         <Link
           to="/scanner"
@@ -83,7 +94,7 @@ const Sidebar = () => {
               : "hover:bg-slate-900 hover:text-white"
           }`}
         >
-          <img src="/scan.png" className="size-10 text-lg mr-2" />
+          <img src="/scanner.png" className="size-10 text-lg mr-2" />
           <span className="font-medium text-sm">Scan</span>
         </Link>
 
