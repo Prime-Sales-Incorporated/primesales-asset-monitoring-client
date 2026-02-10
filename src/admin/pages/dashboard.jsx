@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { fetchAssetStats } from "../../helper";
 
 const StatCard = ({ title, value }) => (
-  <div className="bg-white =rounded-lg p-6 shadow border border-gray-500">
+  <div className="bg-white rounded-lg p-6 shadow-lg border border-gray-500">
     <p className="text-sm font-medium text-black/60 dark:text-white/60">
       {title}
     </p>

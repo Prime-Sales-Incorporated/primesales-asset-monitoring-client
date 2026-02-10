@@ -26,6 +26,8 @@ import AssetDetailsTable from "./admin/pages/asset-list";
 import Sidebar from "./user/components/sidebar";
 import { useLocation } from "react-router-dom";
 import AssetInventory from "./admin/pages/inventory-revamp";
+import RentalsDashboard from "./admin/pages/rentals";
+import ForkliftAuditPage from "./admin/pages/rentals/rental-auditpage";
 function AppLayout() {
   const location = useLocation();
 
@@ -93,6 +95,22 @@ function AppLayout() {
             element={
               <PrivateRoute>
                 <AssetInventory />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/assets/rentals"
+            element={
+              <PrivateRoute>
+                <RentalsDashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/assets/rentals/details"
+            element={
+              <PrivateRoute>
+                <ForkliftAuditPage />
               </PrivateRoute>
             }
           />
