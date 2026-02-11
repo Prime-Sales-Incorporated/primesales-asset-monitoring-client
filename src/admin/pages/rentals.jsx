@@ -147,7 +147,7 @@ export default function RentalsDashboard() {
                   </button>
                   <Link to="/assets/rentals/details">
                     {" "}
-                    <button className="px-3 py-2 text-[11px] font-bold bg-amber-500 text-black rounded uppercase hover:bg-amber-400">
+                    <button className="px-3 py-2 text-[11px] font-bold bg-green-500 text-white rounded uppercase hover:bg-green-600">
                       Audit Now
                     </button>
                   </Link>

@@ -170,7 +170,7 @@ const AssetInventory = () => {
       </header>
 
       {/* Asset Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1  md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredAssets.map((asset) => (
           <AssetCard
             key={asset._id}
@@ -281,7 +281,7 @@ const AssetCard = ({
 }) => {
   const color = statusColors[status] || "gray"; // ✅ move it here
   return (
-    <div className="bg-white overflow-auto dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all overflow-">
+    <div className="bg-white overflow-auto hover:border-amber-400 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all overflow-">
       <div className="p-6">
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-4">
