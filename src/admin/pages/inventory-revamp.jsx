@@ -14,6 +14,7 @@ const categoryIcons = {
   Misc: "📦",
   Uncategorized: "❓",
   Building: "🏢",
+  Units: "/forklift1.png",
 };
 
 const statusColors = {
@@ -285,8 +286,16 @@ const AssetCard = ({
       <div className="p-6">
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center text-3xl">
-              {icon}
+            <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center text-3xl overflow-hidden">
+              {icon.startsWith("http") || icon.startsWith("/") ? (
+                <img
+                  src={icon}
+                  alt={category}
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                icon
+              )}
             </div>
             <div>
               <h3 className="font-bold text-lg dark:text-white">{title}</h3>

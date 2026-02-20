@@ -17,6 +17,8 @@ const RegisterAsset = () => {
   const [assetCost, setAssetCost] = useState("");
 
   const [lifeSpan, setLifeSpan] = useState(""); // in years
+  const [unitLocation, setUnitLocation] = useState("");
+  const [dateAcquiredByClient, setDateAcquiredByClient] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,9 +32,13 @@ const RegisterAsset = () => {
       purchaseDate,
       issuedDate,
       issuedTo,
-      status, // add this
+      status,
       assetCost,
-      lifeSpan, // ✅ add this
+      lifeSpan,
+
+      // ✅ ADD THESE
+      unitLocation,
+      dateAcquiredByClient,
     };
 
     try {
@@ -134,8 +140,9 @@ const RegisterAsset = () => {
                 <option value="">Select category</option>
                 <option value="Electronics">Electronics</option>
                 <option value="Office Supplies">Office Supplies</option>
-                <option value="Furniture">Furniture</option>
+                <option value="Furnitures">Furniture</option>
                 <option value="Vehicles">Vehicles</option>
+                <option value="Units">Units</option>
               </select>
             </div>
 
@@ -215,6 +222,38 @@ const RegisterAsset = () => {
               </div>
             </div>
           </div>
+          {category === "Units" && (
+            <div className="space-y-6 p-4 border rounded-lg bg-slate-50 dark:bg-slate-900">
+              {/* Unit Location */}
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Unit Location (Site Location)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter site location"
+                  className="w-full px-3 py-2 border rounded-lg"
+                  value={unitLocation}
+                  onChange={(e) => setUnitLocation(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Date Acquired by Client */}
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Date Acquired by Client
+                </label>
+                <input
+                  type="date"
+                  className="w-full px-3 py-2 border rounded-lg"
+                  value={dateAcquiredByClient}
+                  onChange={(e) => setDateAcquiredByClient(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+          )}
 
           {/* Issued To */}
           <div className="flex justify-between gap-4">
