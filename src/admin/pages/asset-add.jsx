@@ -18,7 +18,8 @@ const RegisterAsset = () => {
 
   const [lifeSpan, setLifeSpan] = useState(""); // in years
   const [unitLocation, setUnitLocation] = useState("");
-  const [dateAcquiredByClient, setDateAcquiredByClient] = useState("");
+  const [dateAcquired, setDateAcquired] = useState("");
+  const [rentPeriod, setRentPeriod] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,10 +36,10 @@ const RegisterAsset = () => {
       status,
       assetCost,
       lifeSpan,
-
+      rentPeriod, // ✅ add this
       // ✅ ADD THESE
       unitLocation,
-      dateAcquiredByClient,
+      // dateAcquiredByClient,
     };
 
     try {
@@ -65,7 +66,7 @@ const RegisterAsset = () => {
         setIssuedTo("");
         setAssetCost("");
         setLifeSpan("");
-
+        setRentPeriod("");
         setGenerateQR(false);
         alert("Asset registered successfully!");
       } else {
@@ -239,18 +240,50 @@ const RegisterAsset = () => {
                 />
               </div>
 
-              {/* Date Acquired by Client */}
-              <div>
+              {/* Date Acquired */}
+              {/* <div>
                 <label className="block text-sm font-medium mb-1">
-                  Date Acquired by Client
+                  Date Acquired
                 </label>
                 <input
                   type="date"
                   className="w-full px-3 py-2 border rounded-lg"
-                  value={dateAcquiredByClient}
-                  onChange={(e) => setDateAcquiredByClient(e.target.value)}
+                  value={dateAcquired}
+                  onChange={(e) => setDateAcquired(e.target.value)}
                   required
                 />
+              </div> */}
+              {/* Period */}
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Rental Period
+                </label>
+
+                <div className="flex gap-3">
+                  {/* Start Date */}
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 border rounded-lg"
+                    value={rentPeriod.split("|")[0] || ""}
+                    onChange={(e) => {
+                      const endDate = rentPeriod.split("|")[1] || "";
+                      setRentPeriod(`${e.target.value}|${endDate}`);
+                    }}
+                    required
+                  />
+
+                  {/* End Date */}
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 border rounded-lg"
+                    value={rentPeriod.split("|")[1] || ""}
+                    onChange={(e) => {
+                      const startDate = rentPeriod.split("|")[0] || "";
+                      setRentPeriod(`${startDate}|${e.target.value}`);
+                    }}
+                    required
+                  />
+                </div>
               </div>
             </div>
           )}
