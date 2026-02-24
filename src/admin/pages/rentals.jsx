@@ -169,15 +169,9 @@ export default function RentalsDashboard() {
                   </div>
                   <div className="">
                     <p className="text-[10px] font-bold text-slate-400 uppercase">
-                      Date Acquired by Client
+                      Rent Period
                     </p>
-                    <p>
-                      {unit.dateAcquiredByClient
-                        ? new Date(
-                            unit.dateAcquiredByClient,
-                          ).toLocaleDateString("en-US")
-                        : "Unassigned"}
-                    </p>
+                    <p>{unit.rentPeriod ? unit.rentPeriod : "Unassigned"}</p>
                   </div>
                 </div>
 

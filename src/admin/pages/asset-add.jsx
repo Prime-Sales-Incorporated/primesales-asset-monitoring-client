@@ -39,7 +39,6 @@ const RegisterAsset = () => {
       rentPeriod, // ✅ add this
       // ✅ ADD THESE
       unitLocation,
-      // dateAcquiredByClient,
     };
 
     try {
