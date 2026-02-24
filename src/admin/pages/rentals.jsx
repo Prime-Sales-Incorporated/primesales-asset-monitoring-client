@@ -181,7 +181,7 @@ export default function RentalsDashboard() {
                     Details
                   </button>
 
-                  <Link to={`/assets/rentals/details/${unit._id}`}>
+                  <Link to={`/assets/rentals/details/${unit.serialNumber}`}>
                     <button className="px-3 py-2 text-[11px] font-bold bg-green-500 text-white rounded uppercase hover:bg-green-600">
                       Audit Now
                     </button>

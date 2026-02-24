@@ -28,6 +28,7 @@ import { useLocation } from "react-router-dom";
 import AssetInventory from "./admin/pages/inventory-revamp";
 import RentalsDashboard from "./admin/pages/rentals";
 import ForkliftAuditPage from "./admin/pages/rentals/rental-auditpage";
+import PrimeTrackAudit from "./admin/pages/rentals/rental-auditpage";
 function AppLayout() {
   const location = useLocation();
 
@@ -107,13 +108,18 @@ function AppLayout() {
             }
           />
           <Route
+            path="/assets/rentals/details/:serialNumber"
+            element={<PrimeTrackAudit />}
+          />
+
+          {/* <Route
             path="/assets/rentals/details"
             element={
               <PrivateRoute>
                 <ForkliftAuditPage />
               </PrivateRoute>
             }
-          />
+          /> */}
           <Route
             path="/assets/depreciation"
             element={
