@@ -132,10 +132,7 @@ const HybridQRScanner = () => {
             const parsed = JSON.parse(decodedText);
 
             if (parsed.serialNumber && !parsed.category) {
-              window.open(
-                `/assets/rentals/details/${parsed.serialNumber}`,
-                "_blank",
-              );
+              window.location.href = `/assets/rentals/details/${parsed.serialNumber}`;
               html5QrCode.stop();
               return;
             }
@@ -143,7 +140,7 @@ const HybridQRScanner = () => {
             fetchAssetDetails(parsed.serialNumber, parsed.category);
           } else {
             // Plain string → rental
-            window.open(`/assets/rentals/details/${decodedText}`, "_blank");
+            window.location.href = `/assets/rentals/details/${decodedText}`;
             html5QrCode.stop();
           }
         } catch (err) {
