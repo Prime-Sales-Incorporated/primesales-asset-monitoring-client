@@ -11,10 +11,10 @@ const Sidebar = () => {
   return (
     <aside className="w-56 bg-slate-950 h-screen text-slate-300 hidden md:flex flex-col shrink-0">
       <Link to="/" className="flex items-center justify-center py-4 gap-0">
-        <div className="h-6 w-6">
-          <img src="/psi.png" alt="Logo" />
+        <div className="h-10 w-28">
+          <img src="/logo1.png" alt="Logo" />
         </div>
-        <h2 className="text-lg font-bold font-mono text-white">PrimeTrack</h2>
+        {/* <h2 className="text-lg font-bold font-mono text-white">PrimeTrack</h2> */}
       </Link>
 
       <nav className="flex-1 py-4 space-y-1">
