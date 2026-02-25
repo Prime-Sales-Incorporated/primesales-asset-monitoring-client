@@ -67,14 +67,7 @@ function AppLayout() {
           <Route path="/admin/register" element={<RegisterAdmin />} />
 
           {/* Protected routes */}
-          <Route
-            path="/scanner"
-            element={
-              <PrivateRoute>
-                <HybridQRScanner />
-              </PrivateRoute>
-            }
-          />
+          <Route path="/scanner" element={<HybridQRScanner />} />
           <Route
             path="/dashboard"
             element={
