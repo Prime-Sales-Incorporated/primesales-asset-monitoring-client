@@ -200,7 +200,7 @@ const HybridQRScanner = () => {
       {/* Scanner Card */}
       <section className="max-w-4xl mx-auto">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <div className="p-8">
+          <div className="p-4 md:p-8">
             {/* Camera Scanner UI */}
             {scannerType === "camera" && (
               <div className="relative w-full md:aspect- h-[60vh] md:h-auto  rounded-xl overflow-hidden flex items-center justify-center">
