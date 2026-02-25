@@ -259,7 +259,16 @@ const AssetInventory = () => {
             />
 
             <p className="mt-2 text-center text-black text-sm font-medium">
-              {previewQR}
+              <p className="mt-2 text-center text-black text-sm font-medium">
+                {(() => {
+                  try {
+                    const parsed = JSON.parse(previewQR);
+                    return ` ${parsed.serialNumber}  (${parsed.category})`;
+                  } catch {
+                    return previewQR; // if it's just a plain serial (Units)
+                  }
+                })()}
+              </p>
             </p>
           </div>
         </div>

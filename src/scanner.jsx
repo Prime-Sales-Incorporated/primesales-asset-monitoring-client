@@ -285,55 +285,147 @@ const HybridQRScanner = () => {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-lg max-w-lg w-full relative">
-            <button
-              className="absolute top-3 right-3 text-slate-400 hover:text-white"
-              onClick={() => setShowModal(false)}
-            >
-              ✕
-            </button>
+          <div className="bg-background-light dark:bg-background-dark w-full max-w-xl rounded-xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 relative">
+            {/* Header */}
+            <header className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary/10 p-2 rounded-lg">
+                  <span className="material-symbols-outlined text-primary text-2xl">
+                    inventory_2
+                  </span>
+                </div>
+                <h2 className="text-slate-900 dark:text-slate-100 text-xl font-bold tracking-tight">
+                  {assetDetails?.error ? "Error" : "Asset Details"}
+                </h2>
+              </div>
 
-            <h2 className="text-xl font-bold mb-4">
-              {assetDetails?.error ? "Error" : "Asset Details"}
-            </h2>
+              <button
+                onClick={() => setShowModal(false)}
+                className="flex items-center justify-center p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </header>
 
-            {assetDetails?.error ? (
-              <p className="text-red-500">{assetDetails.error}</p>
-            ) : (
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <strong>Serial:</strong> {assetDetails.serialNumber}
-                </li>
-                <li>
-                  <strong>Name:</strong> {assetDetails.assetName}
-                </li>
-                <li>
-                  <strong>Category:</strong> {assetDetails.category}
-                </li>
-                <li>
-                  <strong>Status:</strong>
-                  <select
-                    value={editableStatus}
-                    onChange={(e) => setEditableStatus(e.target.value)}
-                    className="ml-2 px-2 py-1 rounded bg-slate-100 dark:bg-slate-700"
-                  >
-                    <option value="Good Condition">Good Condition</option>
-                    <option value="For Maintenance">For Maintenance</option>
-                    <option value="For Disposal">For Disposal</option>
-                  </select>
-                </li>
-              </ul>
-            )}
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {assetDetails?.error ? (
+                <p className="text-red-500 text-sm">{assetDetails.error}</p>
+              ) : (
+                <>
+                  {/* Info Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Serial */}
+                    <div className="flex items-start gap-4 p-4 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <div className="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-lg shrink-0">
+                        <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">
+                          qr_code
+                        </span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                          Serial Number
+                        </span>
+                        <span className="text-slate-900 dark:text-slate-100 text-base font-medium">
+                          {assetDetails.serialNumber}
+                        </span>
+                      </div>
+                    </div>
 
+                    {/* Category */}
+                    <div className="flex items-start gap-4 p-4 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <div className="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-lg shrink-0">
+                        <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">
+                          category
+                        </span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                          Category
+                        </span>
+                        <span className="text-slate-900 dark:text-slate-100 text-base font-medium">
+                          {assetDetails.category}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Asset Name (Full Width) */}
+                    <div className="md:col-span-2 flex items-start gap-4 p-4 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <div className="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-lg shrink-0">
+                        <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">
+                          laptop_mac
+                        </span>
+                      </div>
+                      <div className="flex flex-col flex-1">
+                        <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                          Asset Name
+                        </span>
+                        <span className="text-slate-900 dark:text-slate-100 text-base font-medium">
+                          {assetDetails.assetName}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status Section */}
+                  <div className="space-y-3">
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">
+                      Current Status
+                    </label>
+
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span className="material-symbols-outlined text-primary">
+                          check_circle
+                        </span>
+                      </div>
+
+                      <select
+                        value={editableStatus}
+                        onChange={(e) => setEditableStatus(e.target.value)}
+                        className="block w-full pl-10 pr-10 py-3.5 bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-sm rounded-xl focus:ring-primary focus:border-primary transition-all appearance-none cursor-pointer"
+                      >
+                        <option value="Good Condition">Good Condition</option>
+                        <option value="For Maintenance">For Maintenance</option>
+                        <option value="For Disposal">For Disposal</option>
+                      </select>
+
+                      <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-400">
+                        <span className="material-symbols-outlined">
+                          expand_more
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-slate-500 dark:text-slate-400 ml-1">
+                      Update the operational status of this equipment for
+                      inventory tracking.
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
             {!assetDetails?.error && (
-              <div className="mt-6 flex justify-end">
+              <footer className="flex items-center justify-end gap-3 px-6 py-4 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="px-5 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+
                 <button
                   onClick={updateStatus}
-                  className="px-5 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"
+                  className="px-6 py-2.5 text-sm font-semibold text-white bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-lg transition-all flex items-center gap-2"
                 >
-                  Save Status
+                  <span className="material-symbols-outlined text-lg">
+                    save
+                  </span>
+                  Save Changes
                 </button>
-              </div>
+              </footer>
             )}
           </div>
         </div>
