@@ -163,7 +163,7 @@ const HybridQRScanner = () => {
   }, [scannerType]);
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 p-8">
+    <div className="min-h-screen bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 p-6 md:p-8">
       {/* Header */}
       <header className="max-w-4xl mx-auto mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
@@ -203,21 +203,12 @@ const HybridQRScanner = () => {
           <div className="p-8">
             {/* Camera Scanner UI */}
             {scannerType === "camera" && (
-              <div className="relative aspect-video bg-slate-950 rounded-xl overflow-hidden flex items-center justify-center">
+              <div className="relative w-full md:aspect- h-[60vh] md:h-auto  rounded-xl overflow-hidden flex items-center justify-center">
                 <div
                   id="camera-container"
                   ref={cameraRef}
-                  className="absolute flex justify-center inset-0 w-full h-full object-cover"
+                  className="absolute inset-0 w-full h-[full] object-cover"
                 />
-
-                {/* Overlay Frame */}
-                {/* <div className="relative w-72 h-72 border-2 border-white/20 rounded-2xl z-10">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <p className="text-white/50 text-xs uppercase tracking-[0.2em]">
-                      Please scan the qr code.
-                    </p>
-                  </div>
-                </div> */}
 
                 {/* Status Badge */}
                 <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/50 px-3 py-1.5 rounded-full border border-white/10 z-20">
