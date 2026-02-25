@@ -1,13 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import API_BASE_URL from "../../../API";
+import Webcam from "react-webcam";
 
 export default function PrimeTrackAudit() {
   const { serialNumber } = useParams();
   const [unit, setUnit] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-
+  const webcamRef = useRef(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [auditData, setAuditData] = useState({
     items: {},
     signature: "",
@@ -60,7 +63,49 @@ export default function PrimeTrackAudit() {
       },
     }));
   };
+  const capturePhoto = () => {
+    const imageSrc = webcamRef.current.getScreenshot();
+    if (!imageSrc) return;
 
+    const img = new Image();
+    img.src = imageSrc;
+
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      canvas.width = img.width;
+      canvas.height = img.height;
+
+      // draw camera image
+      ctx.drawImage(img, 0, 0);
+
+      // ✅ timestamp
+      const now = new Date();
+      const timestamp = now.toLocaleString();
+
+      // watermark background
+      ctx.fillStyle = "rgba(0,0,0,0.65)";
+      ctx.fillRect(15, canvas.height - 60, 420, 45);
+
+      // watermark text
+      ctx.fillStyle = "#fff";
+      ctx.font = "22px Arial";
+      ctx.fillText(`Audit Time: ${timestamp}`, 25, canvas.height - 25);
+
+      // ✅ FINAL IMAGE (THIS IS IMPORTANT)
+      const finalImage = canvas.toDataURL("image/jpeg", 0.9);
+
+      // ✅ SAVE WATERMARKED IMAGE
+      setPhotos((prev) => [
+        ...prev,
+        {
+          preview: finalImage,
+          file: finalImage,
+        },
+      ]);
+    };
+  };
   const handlePhotoUpload = (e) => {
     const files = Array.from(e.target.files);
     const previews = files.map((file) => ({
@@ -117,6 +162,9 @@ export default function PrimeTrackAudit() {
     );
   }
 
+  const removePhoto = (index) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-20">
       <main className="max-w-[1400px] mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -127,7 +175,10 @@ export default function PrimeTrackAudit() {
               <img
                 className="w-full h-full object-cover"
                 alt="Asset"
-                src={unit.image || "https://via.placeholder.com/500"}
+                src={
+                  unit.image ||
+                  "https://image.made-in-china.com/2f0j00ELHcbPShYmzQ/Linde-Forklifts-E30-6ton-Electric-Forklift-Diesel-LPG-Forklift-Trucks-Fork-Lift.webp"
+                }
               />
             </div>
 
@@ -135,7 +186,6 @@ export default function PrimeTrackAudit() {
               <h2 className="text-2xl font-bold mb-4 dark:text-white">
                 {unit.assetName}
               </h2>
-
               <InfoRow label="Serial Number" value={unit.serialNumber} mono />
               <InfoRow label="Category" value={unit.category} />
               <InfoRow label="Status" value={unit.status} />
@@ -147,61 +197,123 @@ export default function PrimeTrackAudit() {
                     : "-"
                 }
               />
+              <InfoRow label="Rental Period" value={unit.rentPeriod} />
             </div>
           </div>
         </aside>
 
         {/* RIGHT CONTENT */}
         <div className="lg:col-span-8 space-y-6">
-          <AuditSection title="Physical Condition">
+          <AuditSection title="General Condition">
             <AuditItem
               title="Tires & Wheels"
               onStatusChange={handleStatusChange}
               onNoteChange={handleNoteChange}
             />
             <AuditItem
-              title="Forks, Mast & Chains"
+              title="Controls & Operation"
               onStatusChange={handleStatusChange}
               onNoteChange={handleNoteChange}
             />
             <AuditItem
-              title="Chassis & Body Panel"
+              title="Wheels & Tires"
               onStatusChange={handleStatusChange}
               onNoteChange={handleNoteChange}
             />
           </AuditSection>
 
-          <AuditSection title="Operational Check">
+          <AuditSection title="Safety Features">
             <AuditItem
               title="Braking System"
               onStatusChange={handleStatusChange}
               onNoteChange={handleNoteChange}
             />
             <AuditItem
-              title="Steering Control"
+              title="Mast & Forks"
+              onStatusChange={handleStatusChange}
+              onNoteChange={handleNoteChange}
+            />
+            <AuditItem
+              title="Fluids & Power Source"
+              onStatusChange={handleStatusChange}
+              onNoteChange={handleNoteChange}
+            />
+            <AuditItem
+              title="Safety Features"
               onStatusChange={handleStatusChange}
               onNoteChange={handleNoteChange}
             />
           </AuditSection>
 
           {/* Evidence Photos */}
+          {/* Evidence Photos */}
           <AuditSection title="Evidence Photos">
-            <div className="p-6">
-              <input
-                type="file"
-                multiple
-                onChange={handlePhotoUpload}
-                className="mb-4"
-              />
+            <div className="p-6 space-y-4">
+              {!cameraOpen ? (
+                <button
+                  onClick={() => setCameraOpen(true)}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg"
+                >
+                  Open Camera
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <Webcam
+                    ref={webcamRef}
+                    screenshotFormat="image/jpeg"
+                    className="rounded-lg w-full"
+                    videoConstraints={{
+                      facingMode: "environment",
+                    }}
+                  />
 
+                  <div className="flex gap-3">
+                    <button
+                      onClick={capturePhoto}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+                    >
+                      Capture Photo
+                    </button>
+
+                    <button
+                      onClick={() => setCameraOpen(false)}
+                      className="bg-red-500 text-white px-4 py-2 rounded-lg"
+                    >
+                      Close Camera
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {photos.map((p, i) => (
-                  <img
-                    key={i}
-                    src={p.preview}
-                    alt="preview"
-                    className="rounded-lg border"
-                  />
+                  <div key={i} className="relative">
+                    {/* IMAGE */}
+                    <img
+                      src={p.preview}
+                      alt="preview"
+                      onClick={() => setSelectedPhoto(p.preview)}
+                      className="rounded-lg border cursor-pointer"
+                    />
+
+                    {/* ✅ ALWAYS VISIBLE DELETE BUTTON */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removePhoto(i);
+                      }}
+                      className="
+          absolute top-2 right-2
+          bg-gray-500 text-white
+          w-5 h-5
+          flex items-center justify-center
+          rounded-full text-xs
+          shadow-lg
+          active:scale-90
+        "
+                    >
+                      ✕
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -231,6 +343,18 @@ export default function PrimeTrackAudit() {
           </AuditSection>
         </div>
       </main>
+      {selectedPhoto && (
+        <div
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <img
+            src={selectedPhoto}
+            alt="Full Preview"
+            className="max-h-[90%] max-w-[90%] rounded-lg shadow-lg"
+          />
+        </div>
+      )}
     </div>
   );
 }

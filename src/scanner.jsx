@@ -84,8 +84,26 @@ const HybridQRScanner = () => {
       if (!data) return;
 
       try {
-        const parsed = JSON.parse(data);
-        fetchAssetDetails(parsed.serialNumber, parsed.category);
+        let parsed;
+
+        // Try parsing as JSON
+        if (data.startsWith("{")) {
+          parsed = JSON.parse(data);
+
+          if (parsed.serialNumber && !parsed.category) {
+            // Only serial number → rental
+            window.open(
+              `/assets/rentals/details/${parsed.serialNumber}`,
+              "_blank",
+            );
+            return;
+          }
+
+          fetchAssetDetails(parsed.serialNumber, parsed.category);
+        } else {
+          // Plain string → assume rental serial number
+          window.open(`/assets/rentals/details/${data}`, "_blank");
+        }
       } catch (err) {
         console.error("Invalid QR data (hardware):", err);
         setAssetDetails({ error: "Invalid QR Code" });
@@ -93,7 +111,6 @@ const HybridQRScanner = () => {
       }
     }
   };
-
   // Camera scanner
   const startCameraScanner = async () => {
     if (!cameraRef.current) return;
@@ -111,9 +128,24 @@ const HybridQRScanner = () => {
     html5QrCode
       .start({ facingMode: "environment" }, { fps: 10 }, (decodedText) => {
         try {
-          const parsed = JSON.parse(decodedText);
-          fetchAssetDetails(parsed.serialNumber, parsed.category);
-          html5QrCode.stop();
+          if (decodedText.startsWith("{")) {
+            const parsed = JSON.parse(decodedText);
+
+            if (parsed.serialNumber && !parsed.category) {
+              window.open(
+                `/assets/rentals/details/${parsed.serialNumber}`,
+                "_blank",
+              );
+              html5QrCode.stop();
+              return;
+            }
+
+            fetchAssetDetails(parsed.serialNumber, parsed.category);
+          } else {
+            // Plain string → rental
+            window.open(`/assets/rentals/details/${decodedText}`, "_blank");
+            html5QrCode.stop();
+          }
         } catch (err) {
           console.error("Invalid QR:", err);
         }

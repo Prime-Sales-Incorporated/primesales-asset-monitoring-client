@@ -263,10 +263,10 @@ const RegisterAsset = () => {
                   <input
                     type="date"
                     className="w-full px-3 py-2 border rounded-lg"
-                    value={rentPeriod.split("|")[0] || ""}
+                    value={rentPeriod.split(" - ")[0] || ""}
                     onChange={(e) => {
-                      const endDate = rentPeriod.split("|")[1] || "";
-                      setRentPeriod(`${e.target.value}|${endDate}`);
+                      const endDate = rentPeriod.split(" - ")[1] || "";
+                      setRentPeriod(`${e.target.value} - ${endDate}`);
                     }}
                     required
                   />
@@ -275,10 +275,10 @@ const RegisterAsset = () => {
                   <input
                     type="date"
                     className="w-full px-3 py-2 border rounded-lg"
-                    value={rentPeriod.split("|")[1] || ""}
+                    value={rentPeriod.split(" - ")[1] || ""}
                     onChange={(e) => {
-                      const startDate = rentPeriod.split("|")[0] || "";
-                      setRentPeriod(`${startDate}|${e.target.value}`);
+                      const startDate = rentPeriod.split(" - ")[0] || "";
+                      setRentPeriod(`${startDate} - ${e.target.value}`);
                     }}
                     required
                   />

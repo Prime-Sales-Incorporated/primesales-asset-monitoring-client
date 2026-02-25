@@ -193,18 +193,24 @@ const AssetInventory = () => {
                 : "-"
             }
             life={asset.lifeSpan || "-"}
-            qrValue={JSON.stringify({
-              serialNumber: asset.serialNumber,
-              category: asset.category || "Uncategorized",
-            })}
+            qrValue={
+              asset.category === "Units"
+                ? asset.serialNumber
+                : JSON.stringify({
+                    serialNumber: asset.serialNumber,
+                    category: asset.category || "Uncategorized",
+                  })
+            }
             onEdit={() => handleEdit(asset._id)}
             onDelete={() => handleDelete(asset._id)}
             onQrClick={() =>
               setPreviewQR(
-                JSON.stringify({
-                  serialNumber: asset.serialNumber,
-                  category: asset.category || "Uncategorized",
-                }),
+                asset.category === "Units"
+                  ? asset.serialNumber
+                  : JSON.stringify({
+                      serialNumber: asset.serialNumber,
+                      category: asset.category || "Uncategorized",
+                    }),
               )
             }
           />
