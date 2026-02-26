@@ -122,7 +122,7 @@ const AssetInventory = () => {
   return (
     <main className="p-8 bg-slate-50 dark:bg-slate-900 min-h-screen">
       {/* Header */}
-      <header className="flex justify-between items-center mb-8">
+      <header className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
         <div>
           <h2 className="text-2xl font-bold dark:text-white">
             Asset Inventory
@@ -136,7 +136,7 @@ const AssetInventory = () => {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 text-sm"
+            className="px-3 py-2 rounded-xl w-28 bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 text-sm"
           >
             {categories.map((cat) => (
               <option key={cat} value={cat}>
@@ -145,16 +145,16 @@ const AssetInventory = () => {
             ))}
           </select>
 
-          <div className="relative">
+          <div className="relative ">
             <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
               search
             </span>
             <input
               type="text"
-              placeholder="Search by serial number..."
+              placeholder="Serial Number..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 rounded-xl bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-blue-500 w-64 text-sm"
+              className="pl-10 pr-4 py-2 rounded-xl  bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-blue-500 w-36 md:w-40 text-sm"
             />
           </div>
 

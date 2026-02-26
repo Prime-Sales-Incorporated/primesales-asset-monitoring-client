@@ -73,7 +73,7 @@ const Sidebar = () => {
         >
           <img src="/forklift.png" className="size-10 text-lg mr-2" />
 
-          <span className="font-medium text-sm">Units</span>
+          <span className="font-medium text-sm">Rentals</span>
         </Link>
         <Link
           to="/reports"

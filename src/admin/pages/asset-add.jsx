@@ -81,7 +81,7 @@ const RegisterAsset = () => {
   return (
     <main className="flex-1 w-full py-2 bg-background-light dark:bg-background-dark pb-10">
       {/* <Header /> */}
-      <div className="max-w-2xl mx-auto bg-background-light dark:bg-background-dark p-8 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800">
+      <div className="max-w-3xl mx-auto bg-background-light dark:bg-background-dark p-8 rounded-xl  border-slate-200 dark:border-slate-800">
         <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white">
           Add New Asset
         </h2>
