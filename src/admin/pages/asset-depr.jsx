@@ -7,7 +7,8 @@ import Header from "../components/header";
 import API_BASE_URL from "../../API";
 import { saveAs } from "file-saver";
 import ExcelJS from "exceljs";
-
+import { FaArrowUp } from "react-icons/fa6";
+import { FaArrowDown } from "react-icons/fa6";
 const months = [
   "Jan",
   "Feb",
@@ -172,7 +173,8 @@ const AssetDepreciationDashboard = () => {
   const [selectedQuarter, setSelectedQuarter] = useState("ALL");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [showFullLife, setShowFullLife] = useState(false);
-
+  const [dateSortOrder, setDateSortOrder] = useState(null);
+  // null | "asc" | "desc"
   // Define widths including padding if needed
   const stickyCols = [118, 80, 97, 57, 120]; // px
   const leftOffsets = stickyCols.reduce((acc, w, i) => {
@@ -220,10 +222,19 @@ const AssetDepreciationDashboard = () => {
     "ALL",
     ...new Set(assets.map((a) => a.category).filter(Boolean)),
   ];
-  const filteredAssets =
+  let filteredAssets =
     selectedCategory === "ALL"
-      ? assets
+      ? [...assets]
       : assets.filter((a) => a.category === selectedCategory);
+
+  if (dateSortOrder) {
+    filteredAssets.sort((a, b) => {
+      const dateA = a.purchaseDate ? new Date(a.purchaseDate) : new Date(0);
+      const dateB = b.purchaseDate ? new Date(b.purchaseDate) : new Date(0);
+
+      return dateSortOrder === "asc" ? dateA - dateB : dateB - dateA;
+    });
+  }
 
   const timeline = showFullLife ? getCompleteTimeline(filteredAssets) : null;
   const headerMonths = showFullLife
@@ -398,6 +409,14 @@ const AssetDepreciationDashboard = () => {
     );
   };
 
+  const handleDateSort = () => {
+    if (dateSortOrder === "asc") {
+      setDateSortOrder("desc");
+    } else {
+      setDateSortOrder("asc");
+    }
+  };
+
   if (loading)
     return (
       <div className="flex items-center justify-center h-screen">
@@ -494,10 +513,15 @@ const AssetDepreciationDashboard = () => {
                       Class
                     </th>
                     <th
-                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3"
+                      onClick={handleDateSort}
+                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 cursor-pointer select-none"
                       style={{ left: leftOffsets[2], width: stickyCols[2] }}
                     >
-                      Date
+                      <div className="flex items-center gap-1">
+                        Date
+                        {dateSortOrder === "asc" && <FaArrowUp />}
+                        {dateSortOrder === "desc" && <FaArrowDown />}
+                      </div>
                     </th>
                     <th
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3"
