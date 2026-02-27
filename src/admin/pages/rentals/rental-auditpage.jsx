@@ -176,34 +176,40 @@ export default function PrimeTrackAudit() {
           const canvas = document.createElement("canvas");
           const ctx = canvas.getContext("2d");
 
-          canvas.width = img.width;
-          canvas.height = img.height;
+          // ⭐ Force mobile inspection ratio
+          const targetWidth = 1280;
+          const targetHeight = 960; // 4:3 ratio (BEST for audit photos)
 
-          ctx.drawImage(img, 0, 0);
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
 
-          const now = new Date().toLocaleString();
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
 
-          // Watermark background
-          const watermarkWidth = canvas.width * 0.9;
-          const watermarkHeight = canvas.height * 0.1;
-
-          ctx.fillStyle = "rgba(0,0,0,0.65)";
-          ctx.fillRect(
-            15,
-            canvas.height - watermarkHeight - 10,
-            watermarkWidth,
-            watermarkHeight,
+          // ⭐ Crop center from camera frame
+          const scale = Math.max(
+            targetWidth / img.width,
+            targetHeight / img.height,
           );
 
-          // Text styling
-          const fontSize = Math.max(canvas.width * 0.025, 12);
-          ctx.fillStyle = "#fff";
-          ctx.font = `${fontSize}px Arial`;
+          const newWidth = img.width * scale;
+          const newHeight = img.height * scale;
 
-          // Watermark text
+          const offsetX = (targetWidth - newWidth) / 2;
+          const offsetY = (targetHeight - newHeight) / 2;
+
+          ctx.drawImage(img, offsetX, offsetY, newWidth, newHeight);
+
+          // ⭐ Watermark
+          const now = new Date().toLocaleString();
           const watermarkText = `${now} | ${locationText}`;
 
-          ctx.fillText(watermarkText, 25, canvas.height - watermarkHeight / 2);
+          ctx.fillStyle = "rgba(0,0,0,0.65)";
+          ctx.fillRect(10, targetHeight - 70, targetWidth - 20, 60);
+
+          ctx.fillStyle = "#fff";
+          ctx.font = "20px Arial";
+          ctx.fillText(watermarkText, 20, targetHeight - 30);
 
           const finalImage = canvas.toDataURL("image/jpeg", 0.9);
 
