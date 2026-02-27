@@ -146,48 +146,75 @@ export default function PrimeTrackAudit() {
   */
 
   const capturePhoto = () => {
-    const imageSrc = webcamRef.current.getScreenshot();
-    if (!imageSrc) return;
+    if (!navigator.geolocation) {
+      alert("Geolocation not supported");
+      return;
+    }
 
-    const img = new Image();
-    img.src = imageSrc;
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude.toFixed(6);
+        const lon = position.coords.longitude.toFixed(6);
 
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
+        // ⭐ Convert GPS → Address
+        const locationData = await reverseGeocode(lat, lon);
 
-      // ✅ Match camera image size
-      canvas.width = img.width;
-      canvas.height = img.height;
+        const locationText = locationData
+          ? `${locationData.city}, ${locationData.province}, ${locationData.country}`
+          : "Location unavailable";
 
-      ctx.drawImage(img, 0, 0);
+        const imageSrc = webcamRef.current.getScreenshot();
+        if (!imageSrc) return;
 
-      const now = new Date().toLocaleString();
+        const img = new Image();
+        img.src = imageSrc;
 
-      // ⭐ Responsive watermark width = 70% of image width
-      const watermarkWidth = canvas.width * 0.7;
-      const watermarkHeight = 40;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
 
-      ctx.fillStyle = "rgba(0,0,0,0.65)";
-      ctx.fillRect(
-        15,
-        canvas.height - watermarkHeight - 10,
-        watermarkWidth,
-        watermarkHeight,
-      );
+          canvas.width = img.width;
+          canvas.height = img.height;
 
-      ctx.fillStyle = "#fff";
+          ctx.drawImage(img, 0, 0);
 
-      // Responsive font size
-      const fontSize = Math.max(canvas.width * 0.025, 12);
-      ctx.font = `${fontSize}px Arial`;
+          const now = new Date().toLocaleString();
 
-      ctx.fillText(`${now}`, 25, canvas.height - watermarkHeight / 2);
+          // Watermark background
+          const watermarkWidth = canvas.width * 0.9;
+          const watermarkHeight = canvas.height * 0.1;
 
-      const finalImage = canvas.toDataURL("image/jpeg", 0.9);
+          ctx.fillStyle = "rgba(0,0,0,0.65)";
+          ctx.fillRect(
+            15,
+            canvas.height - watermarkHeight - 10,
+            watermarkWidth,
+            watermarkHeight,
+          );
 
-      setPhotos((prev) => [...prev, { preview: finalImage, file: finalImage }]);
-    };
+          // Text styling
+          const fontSize = Math.max(canvas.width * 0.025, 12);
+          ctx.fillStyle = "#fff";
+          ctx.font = `${fontSize}px Arial`;
+
+          // Watermark text
+          const watermarkText = `${now} | ${locationText}`;
+
+          ctx.fillText(watermarkText, 25, canvas.height - watermarkHeight / 2);
+
+          const finalImage = canvas.toDataURL("image/jpeg", 0.9);
+
+          setPhotos((prev) => [
+            ...prev,
+            { preview: finalImage, file: finalImage },
+          ]);
+        };
+      },
+      (error) => {
+        console.warn("Location access denied", error);
+        alert("Location permission required");
+      },
+    );
   };
 
   const removePhoto = (index) => {
@@ -447,3 +474,22 @@ function AuditSection({ title, children }) {
     </section>
   );
 }
+const reverseGeocode = async (lat, lon) => {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
+    );
+
+    const data = await res.json();
+
+    return {
+      city:
+        data.address.city || data.address.town || data.address.village || "",
+      province: data.address.state || data.address.region || "",
+      country: data.address.country || "",
+    };
+  } catch (err) {
+    console.error("Reverse geocode failed", err);
+    return null;
+  }
+};
