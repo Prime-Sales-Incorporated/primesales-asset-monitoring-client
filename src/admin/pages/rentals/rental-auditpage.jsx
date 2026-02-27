@@ -18,21 +18,38 @@ const AUDIT_STRUCTURE = {
 
   "Safety Features": [
     "Seatbelt functional",
-    "Horn working",
-    "Warning lights operational",
-    "Braking system responsive",
+    "Horn operational",
+    "Lights (head, tail, warning) working",
+    "Backup alarm functional",
+    "Fire extinguisher present & valid",
   ],
 
-  "Hydraulics & Power": [
-    "Hydraulic system no leaks",
-    "Battery terminals clean",
-    "Power source stable",
+  "Controls & Operation": [
+    "Steering smooth and responsive",
+    "Service brake works properly",
+    "Parking brake holds firmly",
+    "Accelerator/clutch functional",
+    "Hydraulic controls  (lift/tilt/side-shift) working properly",
   ],
 
-  "Controls & Steering": [
-    "Steering responsive",
-    "Control levers smooth",
-    "Dashboard indicators working",
+  "Mast & Forks": [
+    "No cracks, bends or weld defects",
+    "Forks equal height, locking pins in place",
+    "Mast chains properly lubricated not overstretched",
+    "Hydraulic cylinders free of leaks",
+  ],
+
+  "Wheels & Tires": [
+    "No excessive wear, chunking or cracks",
+    "Proper inflation (if pneumatic)",
+    "Even tread wear",
+  ],
+
+  "Fluids & Power Source": [
+    "Engine oil level correct",
+    "Hydraulic fluid sufficient",
+    "Coolant level",
+    "Battery charged / Fuel adequate",
   ],
 };
 
@@ -256,120 +273,122 @@ export default function PrimeTrackAudit() {
         </aside>
 
         {/* RIGHT AUDIT CONTENT */}
-        <div className="lg:col-span-8 space-y-6">
-          {/* AUDIT SECTIONS */}
-          {Object.entries(AUDIT_STRUCTURE).map(([section, items]) => (
-            <AuditSection key={section} title={section}>
-              <div className="p-6 space-y-4">
-                {items.map((item) => (
-                  <label
-                    key={item}
-                    className="flex gap-3 text-sm dark:text-white"
-                  >
-                    <input
-                      type="checkbox"
-                      onChange={(e) =>
-                        handleChecklistChange(section, item, e.target.checked)
-                      }
-                    />
-                    {item}
-                  </label>
-                ))}
+        <div className="lg:col-span-8 space-y-6 ">
+          <div className="grid md:grid-cols-1 gap-6">
+            {/* AUDIT SECTIONS */}
+            {Object.entries(AUDIT_STRUCTURE).map(([section, items]) => (
+              <AuditSection key={section} title={section}>
+                <div className="p-6 space-y-4 flex flex-col">
+                  {items.map((item) => (
+                    <label
+                      key={item}
+                      className="flex gap-3 text-sm dark:text-white"
+                    >
+                      <input
+                        type="checkbox"
+                        onChange={(e) =>
+                          handleChecklistChange(section, item, e.target.checked)
+                        }
+                      />
+                      {item}
+                    </label>
+                  ))}
 
-                <textarea
-                  placeholder="Add notes..."
-                  className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:text-white"
-                  onChange={(e) => handleNoteChange(section, e.target.value)}
-                />
+                  <textarea
+                    placeholder="Add notes..."
+                    className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:text-white"
+                    onChange={(e) => handleNoteChange(section, e.target.value)}
+                  />
+                </div>
+              </AuditSection>
+            ))}
+
+            {/* PHOTOS */}
+            <AuditSection title="Evidence Photos">
+              <div className="p-6 space-y-4">
+                {!cameraOpen ? (
+                  <button
+                    onClick={() => setCameraOpen(true)}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg"
+                  >
+                    Open Camera
+                  </button>
+                ) : (
+                  <>
+                    <Webcam
+                      ref={webcamRef}
+                      screenshotFormat="image/jpeg"
+                      className="w-full rounded-lg"
+                      videoConstraints={{ facingMode: "environment" }}
+                    />
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={capturePhoto}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+                      >
+                        Capture
+                      </button>
+
+                      <button
+                        onClick={() => setCameraOpen(false)}
+                        className="bg-red-500 text-white px-4 py-2 rounded-lg"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {photos.map((p, i) => (
+                    <div key={i} className="relative">
+                      <img
+                        src={p.preview}
+                        className="rounded-lg cursor-pointer border"
+                        onClick={() => setSelectedPhoto(p.preview)}
+                      />
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removePhoto(i);
+                        }}
+                        className="absolute top-2 right-2 bg-gray-600 text-white w-6 h-6 rounded-full"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </AuditSection>
-          ))}
 
-          {/* PHOTOS */}
-          <AuditSection title="Evidence Photos">
-            <div className="p-6 space-y-4">
-              {!cameraOpen ? (
+            {/* SIGNATURE */}
+            <AuditSection title="Signature">
+              <div className="p-6 space-y-4">
+                <input
+                  placeholder="Enter full name"
+                  className="w-full p-3 border rounded-lg dark:bg-slate-800 dark:text-white"
+                  value={auditData.signature}
+                  onChange={(e) =>
+                    setAuditData({
+                      ...auditData,
+                      signature: e.target.value,
+                    })
+                  }
+                />
+
                 <button
-                  onClick={() => setCameraOpen(true)}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg"
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold"
                 >
-                  Open Camera
+                  {submitting ? "Submitting..." : "Submit Audit"}
                 </button>
-              ) : (
-                <>
-                  <Webcam
-                    ref={webcamRef}
-                    screenshotFormat="image/jpeg"
-                    className="w-full rounded-lg"
-                    videoConstraints={{ facingMode: "environment" }}
-                  />
-
-                  <div className="flex gap-3">
-                    <button
-                      onClick={capturePhoto}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg"
-                    >
-                      Capture
-                    </button>
-
-                    <button
-                      onClick={() => setCameraOpen(false)}
-                      className="bg-red-500 text-white px-4 py-2 rounded-lg"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </>
-              )}
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {photos.map((p, i) => (
-                  <div key={i} className="relative">
-                    <img
-                      src={p.preview}
-                      className="rounded-lg cursor-pointer border"
-                      onClick={() => setSelectedPhoto(p.preview)}
-                    />
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removePhoto(i);
-                      }}
-                      className="absolute top-2 right-2 bg-gray-600 text-white w-6 h-6 rounded-full"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
               </div>
-            </div>
-          </AuditSection>
-
-          {/* SIGNATURE */}
-          <AuditSection title="Signature">
-            <div className="p-6 space-y-4">
-              <input
-                placeholder="Enter full name"
-                className="w-full p-3 border rounded-lg dark:bg-slate-800 dark:text-white"
-                value={auditData.signature}
-                onChange={(e) =>
-                  setAuditData({
-                    ...auditData,
-                    signature: e.target.value,
-                  })
-                }
-              />
-
-              <button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold"
-              >
-                {submitting ? "Submitting..." : "Submit Audit"}
-              </button>
-            </div>
-          </AuditSection>
+            </AuditSection>
+          </div>
         </div>
       </main>
 

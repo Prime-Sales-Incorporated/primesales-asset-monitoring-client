@@ -85,14 +85,14 @@ export default function RentalsDashboard() {
                 placeholder="Search serial..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="px-4 py-2 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700"
+                className="px-4 py-2 rounded-xl border bg-white dark:bg-slate-800 w-44  dark:border-slate-700"
               />
 
               {/* Location Filter */}
               <select
                 value={selectedLocation}
                 onChange={(e) => setSelectedLocation(e.target.value)}
-                className="px-4 py-2 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700"
+                className="px-4 py-2 rounded-xl border bg-white dark:bg-slate-800 w-28 dark:border-slate-700"
               >
                 {locations.map((loc) => (
                   <option key={loc} value={loc}>
@@ -102,12 +102,12 @@ export default function RentalsDashboard() {
               </select>
 
               {/* Dark Mode */}
-              <button
+              {/* <button
                 onClick={() => setDarkMode(!darkMode)}
                 className="p-2 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700"
               >
                 🌙
-              </button>
+              </button> */}
             </div>
           </header>
 

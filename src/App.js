@@ -56,7 +56,7 @@ function AppLayout() {
       {!hideSidebar && (
         <>
           <div
-            className={`fixed top-0 left-0 h-full w-64 bg-slate-950 z-50 transition-transform duration-300 md:hidden ${
+            className={`fixed top-0 left-0 h-full  bg-slate-950 z-50 w-48 transition-transform duration-300 md:hidden ${
               sidebarOpen ? "translate-x-0" : "-translate-x-full"
             }`}
           >
@@ -80,8 +80,9 @@ function AppLayout() {
             <button onClick={() => setSidebarOpen(true)} className="text-2xl">
               ☰
             </button>
-
-            <h1 className="font-semibold">PrimeTrack</h1>
+            <div className="h-10 w-28">
+              <img src="/logo.png" alt="Logo" className="h-10" />
+            </div>
 
             <div className="w-6" />
           </div>
