@@ -153,7 +153,10 @@ export default function PrimeTrackAudit() {
       return;
     }
 
-    const imageSrc = webcamRef.current.getScreenshot();
+    const imageSrc = webcamRef.current.getScreenshot({
+      width: 1920,
+      height: 1440,
+    });
 
     if (!imageSrc) return;
 
@@ -175,49 +178,40 @@ export default function PrimeTrackAudit() {
           const canvas = document.createElement("canvas");
           const ctx = canvas.getContext("2d");
 
-          // ⭐ FIX WIDTH ISSUE (IMPORTANT)
-          const targetWidth = 1080;
-          const targetHeight = 810; // 4:3 ratio
+          // ⭐ USE HIGH QUALITY AUDIT STANDARD SIZE
+          const targetWidth = 1920;
+          const targetHeight = 1440;
 
           canvas.width = targetWidth;
           canvas.height = targetHeight;
 
-          const scale = Math.max(
-            targetWidth / img.width,
-            targetHeight / img.height,
-          );
+          // ⭐ VERY IMPORTANT (Fix Blur)
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
 
-          const newWidth = img.width * scale;
-          const newHeight = img.height * scale;
+          // Draw full image to fill canvas (no weird cropping math)
+          ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
 
-          const offsetX = (targetWidth - newWidth) / 2;
-          const offsetY = (targetHeight - newHeight) / 2;
-
-          ctx.drawImage(img, offsetX, offsetY, newWidth, newHeight);
-
-          // ⭐ Watermark
+          // Watermark
           const now = new Date().toLocaleString();
           const watermarkText = `${now} | ${locationText}`;
 
-          ctx.fillStyle = "rgba(0,0,0,0.65)";
-          ctx.fillRect(0, targetHeight - 60, targetWidth, 60);
+          ctx.fillStyle = "rgba(0,0,0,0.6)";
+          ctx.fillRect(0, targetHeight - 80, targetWidth, 80);
 
           ctx.fillStyle = "white";
-          ctx.font = "18px Arial";
-          ctx.fillText(watermarkText, 20, targetHeight - 25);
+          ctx.font = "32px Arial";
+          ctx.fillText(watermarkText, 30, targetHeight - 40);
 
           const finalImage = canvas.toDataURL("image/jpeg", 1.0);
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = "high";
+
           setPhotos((prev) => [
             ...prev,
             { preview: finalImage, file: finalImage },
           ]);
         };
       },
-      () => {
-        alert("Location permission required");
-      },
+      () => alert("Location permission required"),
     );
   };
 
@@ -368,8 +362,9 @@ export default function PrimeTrackAudit() {
                           className="w-full h-full object-cover"
                           videoConstraints={{
                             facingMode: "environment",
-                            width: 1280,
-                            height: 720,
+                            width: { ideal: 1920 },
+                            height: { ideal: 1440 },
+                            aspectRatio: 4 / 3,
                           }}
                         />
                       </div>
