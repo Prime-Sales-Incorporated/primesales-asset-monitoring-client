@@ -206,8 +206,9 @@ export default function PrimeTrackAudit() {
           ctx.font = "18px Arial";
           ctx.fillText(watermarkText, 20, targetHeight - 25);
 
-          const finalImage = canvas.toDataURL("image/jpeg", 0.9);
-
+          const finalImage = canvas.toDataURL("image/jpeg", 1.0);
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
           setPhotos((prev) => [
             ...prev,
             { preview: finalImage, file: finalImage },
