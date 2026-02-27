@@ -359,18 +359,20 @@ export default function PrimeTrackAudit() {
                   </button>
                 ) : (
                   <>
-                    <Webcam
-                      ref={webcamRef}
-                      screenshotFormat="image/jpeg"
-                      className="w-full rounded-lg"
-                      videoConstraints={{
-                        facingMode: "environment",
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 },
-                        aspectRatio: 4 / 3,
-                      }}
-                    />
-
+                    <div className="w-full flex justify-center">
+                      <div className="w-full max-w-[480px] aspect-[4/3] overflow-hidden rounded-lg">
+                        <Webcam
+                          ref={webcamRef}
+                          screenshotFormat="image/jpeg"
+                          className="w-full h-full object-cover"
+                          videoConstraints={{
+                            facingMode: "environment",
+                            width: 1280,
+                            height: 720,
+                          }}
+                        />
+                      </div>
+                    </div>
                     <div className="flex gap-3">
                       <button
                         onClick={capturePhoto}
