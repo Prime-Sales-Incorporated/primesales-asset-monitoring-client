@@ -182,11 +182,7 @@ export default function PrimeTrackAudit() {
       const fontSize = Math.max(canvas.width * 0.025, 12);
       ctx.font = `${fontSize}px Arial`;
 
-      ctx.fillText(
-        `Audit Time: ${now}`,
-        25,
-        canvas.height - watermarkHeight / 2,
-      );
+      ctx.fillText(`${now}`, 25, canvas.height - watermarkHeight / 2);
 
       const finalImage = canvas.toDataURL("image/jpeg", 0.9);
 
