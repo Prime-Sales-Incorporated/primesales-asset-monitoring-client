@@ -1,127 +1,72 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 
-const Sidebar = () => {
+const Sidebar = ({ mobile = false, isOpen = false, onClose }) => {
   const location = useLocation();
   const currentPath = location.pathname;
 
-  // function to check if link is active
   const isActive = (path) => currentPath === path;
 
+  const handleClick = () => {
+    if (mobile && onClose) onClose();
+  };
+
   return (
-    <aside className="w-56 bg-slate-950 h-screen text-slate-300 hidden md:flex flex-col shrink-0">
-      <Link to="/" className="flex items-center justify-center py-4 gap-0">
+    <aside
+      className={`
+        bg-slate-950 text-slate-300 flex flex-col
+        ${
+          mobile
+            ? `fixed top-0 left-0 h-full w-64 z-50 transform transition-transform duration-300 ${
+                isOpen ? "translate-x-0" : "-translate-x-full"
+              }`
+            : "w-56 h-screen  shrink-0"
+        }
+      `}
+    >
+      {/* Logo */}
+      <Link
+        to="/"
+        onClick={handleClick}
+        className="flex items-center justify-center py-4"
+      >
         <div className="h-10 w-28">
           <img src="/logo1.png" alt="Logo" />
         </div>
-        {/* <h2 className="text-lg font-bold font-mono text-white">PrimeTrack</h2> */}
       </Link>
 
+      {/* Navigation */}
       <nav className="flex-1 py-4 space-y-1">
-        <Link
-          to="/dashboard"
-          className={`flex items-center px-6 py-3 transition-colors ${
-            isActive("/dashboard")
-              ? "text-primary bg-primary/10 border-r-4 border-primary"
-              : "hover:bg-slate-900 hover:text-white"
-          }`}
-        >
-          <img src="/layout12.png" className="size-10 text-lg mr-2" />
-          <span className="font-medium text-sm">Overview</span>
-        </Link>
-        <Link
-          to="/assets/add"
-          className={`flex items-center px-6 py-3 transition-colors ${
-            isActive("/assets/add")
-              ? "text-primary bg-primary/10 border-r-4 border-primary"
-              : "hover:bg-slate-900 hover:text-white"
-          }`}
-        >
-          <img src="/box.png" className="size-10 text-lg mr-2" />
-          <span className="font-medium text-sm">Add Asset</span>
-        </Link>
-        <Link
-          to="/assets/list"
-          className={`flex items-center px-6 py-3 transition-colors ${
-            isActive("/assets/list")
-              ? "text-primary bg-primary/10 border-r-4 border-primary"
-              : "hover:bg-slate-900 hover:text-white"
-          }`}
-        >
-          <img src="/inv1.png" className="size-10 text-lg mr-2" />
-          <span className="font-medium text-sm">Inventory</span>
-        </Link>
-
-        <Link
-          to="/assets/depreciation"
-          className={`flex items-center px-6 py-3 transition-colors ${
-            isActive("/assets/depreciation")
-              ? "text-primary bg-primary/10 border-r-4 border-primary"
-              : "hover:bg-slate-900 hover:text-white"
-          }`}
-        >
-          <img src="/depr.png" className="size-10 text-lg mr-2" />
-          <span className="font-medium text-sm">Depreciation</span>
-        </Link>
-        <Link
-          to="/assets/rentals"
-          className={`flex items-center px-6 py-3 transition-colors ${
-            isActive("/assets/rentals")
-              ? "text-primary bg-primary/10 border-r-4 border-primary"
-              : "hover:bg-slate-900 hover:text-white"
-          }`}
-        >
-          <img src="/forklift.png" className="size-10 text-lg mr-2" />
-
-          <span className="font-medium text-sm">Rentals</span>
-        </Link>
-        <Link
-          to="/reports"
-          className={`flex items-center px-6 py-3 transition-colors ${
-            isActive("/reports")
-              ? "text-primary bg-primary/10 border-r-4 border-primary"
-              : "hover:bg-slate-900 hover:text-white"
-          }`}
-        >
-          <img src="/analyt.png" className="size-10 text-lg mr-2" />
-          <span className="font-medium text-sm">Reports</span>
-        </Link>
-        <Link
-          to="/scanner"
-          className={`flex items-center px-6 py-3 transition-colors ${
-            isActive("/scanner")
-              ? "text-primary bg-primary/10 border-r-4 border-primary"
-              : "hover:bg-slate-900 hover:text-white"
-          }`}
-        >
-          <img src="/scanner.png" className="size-10 text-lg mr-2" />
-          <span className="font-medium text-sm">Scan</span>
-        </Link>
-
-        {/* 
-        <div className="px-6 pt-6 pb-2">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            Administration
-          </p>
-        </div>
-
-        <a
-          className="flex items-center px-6 py-3 hover:bg-slate-900 hover:text-white transition-colors"
-          href="#"
-        >
-          <span className="material-icons-outlined mr-3">people</span>
-          <span className="font-medium">Users</span>
-        </a>
-
-        <a
-          className="flex items-center px-6 py-3 hover:bg-slate-900 hover:text-white transition-colors"
-          href="#"
-        >
-          <span className="material-icons-outlined mr-3">settings</span>
-          <span className="font-medium">Settings</span>
-        </a> */}
+        {[
+          { to: "/dashboard", label: "Overview", icon: "/layout12.png" },
+          { to: "/assets/add", label: "Add Asset", icon: "/box.png" },
+          { to: "/assets/list", label: "Inventory", icon: "/inv1.png" },
+          {
+            to: "/assets/depreciation",
+            label: "Depreciation",
+            icon: "/depr.png",
+          },
+          { to: "/assets/rentals", label: "Rentals", icon: "/forklift.png" },
+          { to: "/reports", label: "Reports", icon: "/analyt.png" },
+          { to: "/scanner", label: "Scan", icon: "/scanner.png" },
+        ].map((item) => (
+          <Link
+            key={item.to}
+            to={item.to}
+            onClick={handleClick}
+            className={`flex items-center px-6 py-3 transition-colors ${
+              isActive(item.to)
+                ? "text-primary bg-primary/10 border-r-4 border-primary"
+                : "hover:bg-slate-900 hover:text-white"
+            }`}
+          >
+            <img src={item.icon} className="size-6 mr-3" alt="" />
+            <span className="font-medium text-sm">{item.label}</span>
+          </Link>
+        ))}
       </nav>
 
+      {/* User Card */}
       <div className="p-4 border-t border-slate-800">
         <div className="flex items-center gap-3 p-2 bg-slate-900 rounded-lg">
           <div className="w-10 h-10 rounded-full bg-slate-700 overflow-hidden">
