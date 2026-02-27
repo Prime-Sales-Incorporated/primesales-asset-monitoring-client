@@ -146,28 +146,27 @@ export default function PrimeTrackAudit() {
   */
 
   const capturePhoto = () => {
+    if (!webcamRef.current) return;
+
     if (!navigator.geolocation) {
       alert("Geolocation not supported");
       return;
     }
+
+    const imageSrc = webcamRef.current.getScreenshot();
+
+    if (!imageSrc) return;
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const lat = position.coords.latitude.toFixed(6);
         const lon = position.coords.longitude.toFixed(6);
 
-        // ⭐ Convert GPS → Address
         const locationData = await reverseGeocode(lat, lon);
 
         const locationText = locationData
           ? `${locationData.city}, ${locationData.province}, ${locationData.country}`
           : "Location unavailable";
-
-        const imageSrc = webcamRef.current.getScreenshot({
-          width: 1280,
-          height: 720,
-        });
-        if (!imageSrc) return;
 
         const img = new Image();
         img.src = imageSrc;
@@ -176,17 +175,13 @@ export default function PrimeTrackAudit() {
           const canvas = document.createElement("canvas");
           const ctx = canvas.getContext("2d");
 
-          // ⭐ Force mobile inspection ratio
-          const targetWidth = 1280;
-          const targetHeight = 960; // 4:3 ratio (BEST for audit photos)
+          // ⭐ FIX WIDTH ISSUE (IMPORTANT)
+          const targetWidth = 1080;
+          const targetHeight = 810; // 4:3 ratio
 
           canvas.width = targetWidth;
           canvas.height = targetHeight;
 
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = "high";
-
-          // ⭐ Crop center from camera frame
           const scale = Math.max(
             targetWidth / img.width,
             targetHeight / img.height,
@@ -205,11 +200,11 @@ export default function PrimeTrackAudit() {
           const watermarkText = `${now} | ${locationText}`;
 
           ctx.fillStyle = "rgba(0,0,0,0.65)";
-          ctx.fillRect(10, targetHeight - 70, targetWidth - 20, 60);
+          ctx.fillRect(0, targetHeight - 60, targetWidth, 60);
 
-          ctx.fillStyle = "#fff";
-          ctx.font = "20px Arial";
-          ctx.fillText(watermarkText, 20, targetHeight - 30);
+          ctx.fillStyle = "white";
+          ctx.font = "18px Arial";
+          ctx.fillText(watermarkText, 20, targetHeight - 25);
 
           const finalImage = canvas.toDataURL("image/jpeg", 0.9);
 
@@ -219,8 +214,7 @@ export default function PrimeTrackAudit() {
           ]);
         };
       },
-      (error) => {
-        console.warn("Location access denied", error);
+      () => {
         alert("Location permission required");
       },
     );
