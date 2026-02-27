@@ -163,7 +163,10 @@ export default function PrimeTrackAudit() {
           ? `${locationData.city}, ${locationData.province}, ${locationData.country}`
           : "Location unavailable";
 
-        const imageSrc = webcamRef.current.getScreenshot();
+        const imageSrc = webcamRef.current.getScreenshot({
+          width: 1920,
+          height: 1080,
+        });
         if (!imageSrc) return;
 
         const img = new Image();
@@ -360,7 +363,11 @@ export default function PrimeTrackAudit() {
                       ref={webcamRef}
                       screenshotFormat="image/jpeg"
                       className="w-full rounded-lg"
-                      videoConstraints={{ facingMode: "environment" }}
+                      videoConstraints={{
+                        facingMode: "environment",
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 },
+                      }}
                     />
 
                     <div className="flex gap-3">
