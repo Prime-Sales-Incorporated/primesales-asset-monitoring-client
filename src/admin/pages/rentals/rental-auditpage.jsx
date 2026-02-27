@@ -156,6 +156,7 @@ export default function PrimeTrackAudit() {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
 
+      // ✅ Match camera image size
       canvas.width = img.width;
       canvas.height = img.height;
 
@@ -163,12 +164,29 @@ export default function PrimeTrackAudit() {
 
       const now = new Date().toLocaleString();
 
+      // ⭐ Responsive watermark width = 70% of image width
+      const watermarkWidth = canvas.width * 0.7;
+      const watermarkHeight = 40;
+
       ctx.fillStyle = "rgba(0,0,0,0.65)";
-      ctx.fillRect(15, canvas.height - 60, 450, 45);
+      ctx.fillRect(
+        15,
+        canvas.height - watermarkHeight - 10,
+        watermarkWidth,
+        watermarkHeight,
+      );
 
       ctx.fillStyle = "#fff";
-      ctx.font = "22px Arial";
-      ctx.fillText(`Audit Time: ${now}`, 25, canvas.height - 25);
+
+      // Responsive font size
+      const fontSize = Math.max(canvas.width * 0.025, 12);
+      ctx.font = `${fontSize}px Arial`;
+
+      ctx.fillText(
+        `Audit Time: ${now}`,
+        25,
+        canvas.height - watermarkHeight / 2,
+      );
 
       const finalImage = canvas.toDataURL("image/jpeg", 0.9);
 
