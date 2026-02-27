@@ -17,10 +17,10 @@ const Sidebar = ({ mobile = false, isOpen = false, onClose }) => {
         bg-slate-950 text-slate-300 flex flex-col
         ${
           mobile
-            ? `fixed top-0 left-0 h-full w-64 z-50 transform transition-transform duration-300 ${
+            ? `fixed top-0 left-0 min-h-screen w-64 z-50 transform transition-transform duration-300 ${
                 isOpen ? "translate-x-0" : "-translate-x-full"
               }`
-            : "w-56 h-screen  shrink-0"
+            : "w-56 min-h-screen shrink-0"
         }
       `}
     >

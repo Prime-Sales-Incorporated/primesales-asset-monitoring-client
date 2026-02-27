@@ -44,19 +44,19 @@ function AppLayout() {
   const hideSidebar = hideSidebarRoutes.includes(location.pathname);
 
   return (
-    <div className="flex min-h-screen relative">
-      {/* Desktop Sidebar */}
+    <div className="min-h-screen flex">
+      {/* DESKTOP SIDEBAR */}
       {!hideSidebar && (
-        <div className="hidden md:block">
+        <div className="hidden md:block h-screen">
           <Sidebar />
         </div>
       )}
 
-      {/* Mobile Sidebar */}
+      {/* MOBILE SIDEBAR DRAWER */}
       {!hideSidebar && (
         <>
           <div
-            className={`fixed top-0 left-0 h-full w-64 bg-slate-950 z-50 transform transition-transform duration-300 md:hidden ${
+            className={`fixed top-0 left-0 h-full w-64 bg-slate-950 z-50 transition-transform duration-300 md:hidden ${
               sidebarOpen ? "translate-x-0" : "-translate-x-full"
             }`}
           >
@@ -72,20 +72,23 @@ function AppLayout() {
         </>
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 min-h-screen bg-gray-50 overflow-auto">
-        {/* Mobile Header */}
+      {/* MAIN CONTENT AREA */}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+        {/* MOBILE TOP HEADER */}
         {!hideSidebar && (
-          <div className="md:hidden flex items-center justify-between p-4 bg-white shadow sticky top-0 z-30">
+          <div className="md:hidden flex justify-between items-center p-4 bg-white shadow">
             <button onClick={() => setSidebarOpen(true)} className="text-2xl">
               ☰
             </button>
+
             <h1 className="font-semibold">PrimeTrack</h1>
+
             <div className="w-6" />
           </div>
         )}
 
-        <div className="p-4">
+        {/* ROUTES AREA (SCROLLABLE CONTENT) */}
+        <div className="flex-1 overflow-auto p-4 bg-gray-50">
           <Toaster position="top-right" />
 
           <Routes>
