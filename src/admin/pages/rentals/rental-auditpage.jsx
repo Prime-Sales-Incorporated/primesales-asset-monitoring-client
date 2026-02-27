@@ -164,8 +164,8 @@ export default function PrimeTrackAudit() {
           : "Location unavailable";
 
         const imageSrc = webcamRef.current.getScreenshot({
-          width: 1920,
-          height: 1080,
+          width: 1280,
+          height: 720,
         });
         if (!imageSrc) return;
 
@@ -365,8 +365,9 @@ export default function PrimeTrackAudit() {
                       className="w-full rounded-lg"
                       videoConstraints={{
                         facingMode: "environment",
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        aspectRatio: 4 / 3,
                       }}
                     />
 
