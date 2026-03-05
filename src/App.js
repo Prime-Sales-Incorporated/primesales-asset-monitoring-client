@@ -29,6 +29,10 @@ import AssetInventory from "./admin/pages/inventory-revamp";
 import RentalsDashboard from "./admin/pages/rentals";
 import PrimeTrackAudit from "./admin/pages/rentals/rental-auditpage";
 
+import { useEffect } from "react";
+import db from "./offline/db";
+import API_BASE_URL from "./API";
+
 function AppLayout() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);

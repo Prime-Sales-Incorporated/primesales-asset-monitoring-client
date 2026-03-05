@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import API_BASE_URL from "../../API";
+import db from "../../offline/db";
 
 export default function RentalsDashboard() {
   const [darkMode, setDarkMode] = useState(false);
@@ -12,24 +13,36 @@ export default function RentalsDashboard() {
 
   useEffect(() => {
     const fetchUnits = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/asset/get/all`, {
-          headers: {
-            "ngrok-skip-browser-warning": "true",
-            "Content-Type": "application/json",
-          },
-        });
+      setLoading(true);
 
-        const data = await res.json();
+      try {
+        let data = [];
+
+        if (navigator.onLine) {
+          // 🟢 ONLINE → fetch from server
+          const res = await fetch(`${API_BASE_URL}/api/asset/get/all`, {
+            headers: {
+              "ngrok-skip-browser-warning": "true",
+              "Content-Type": "application/json",
+            },
+          });
+
+          data = await res.json();
+
+          // 🔥 Save to IndexedDB for offline use
+          await db.assets.bulkPut(data);
+        } else {
+          // 🔴 OFFLINE → load from IndexedDB
+          data = await db.assets.toArray();
+          console.log("Loaded from IndexedDB (offline)");
+        }
 
         // Filter only Units
-        const forkliftsOnly = data.filter(
-          (asset) => asset.category === "Units",
-        );
+        const forkliftsOnly = data.filter((asset) => asset.category === "Unit");
 
         setUnits(forkliftsOnly);
       } catch (error) {
-        console.error("Error fetching units:", error);
+        console.error("Error loading units:", error);
       } finally {
         setLoading(false);
       }

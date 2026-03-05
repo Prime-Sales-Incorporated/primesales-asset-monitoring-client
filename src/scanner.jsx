@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import toast from "react-hot-toast";
 import API_BASE_URL from "./API";
+import db from "../src/offline/db";
 
 const HybridQRScanner = () => {
   const [assetDetails, setAssetDetails] = useState(null);
@@ -23,24 +24,41 @@ const HybridQRScanner = () => {
 
   const fetchAssetDetails = async (serialNumber, category) => {
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/asset/get/${serialNumber}?category=${category}`,
-        {
-          headers: {
-            "ngrok-skip-browser-warning": "true",
-            "Content-Type": "application/json",
+      let data = null;
+
+      // 🟢 ONLINE → Fetch from server
+      if (navigator.onLine) {
+        const res = await fetch(
+          `${API_BASE_URL}/api/asset/get/${serialNumber}?category=${category}`,
+          {
+            headers: {
+              "ngrok-skip-browser-warning": "true",
+              "Content-Type": "application/json",
+            },
           },
-        },
-      );
+        );
 
-      if (!res.ok) throw new Error("Asset not found");
+        if (!res.ok) throw new Error("Asset not found");
 
-      const data = await res.json();
+        data = await res.json();
+
+        // Cache result for offline use
+        await db.assets.put(data);
+      } else {
+        // 🔴 OFFLINE → Load from IndexedDB
+        data = await db.assets.get(serialNumber);
+      }
+
+      if (!data) {
+        throw new Error("Asset not found");
+      }
+
       setAssetDetails(data);
       setEditableStatus(data.status || "Good Condition");
       setShowModal(true);
     } catch (err) {
       console.error(err);
+
       setAssetDetails({ error: "Asset not found or server error" });
       setShowModal(true);
     }

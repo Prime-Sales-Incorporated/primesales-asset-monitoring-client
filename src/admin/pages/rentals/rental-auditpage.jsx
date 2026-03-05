@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import API_BASE_URL from "../../../API";
 import Webcam from "react-webcam";
-
+import db from "../../../offline/db";
 /*
 ========================================================
 AUDIT STRUCTURE CONFIG (EASY TO MODIFY)
@@ -84,18 +84,41 @@ export default function PrimeTrackAudit() {
   FETCH ASSET
   ========================================================
   */
-
   useEffect(() => {
     const fetchUnit = async () => {
-      try {
-        const res = await fetch(
-          `${API_BASE_URL}/api/asset/audit/${serialNumber}`,
-        );
+      setLoading(true);
 
-        const data = await res.json();
+      try {
+        let data = null;
+
+        if (navigator.onLine) {
+          const res = await fetch(
+            `${API_BASE_URL}/api/asset/audit/${serialNumber}`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+              },
+            },
+          );
+
+          data = await res.json();
+
+          // Save to local cache
+          if (data) {
+            await db.assets.put(data);
+          }
+        } else {
+          // Offline → load from cache
+          data = await db.assets.get(serialNumber);
+        }
+
         setUnit(data);
       } catch (err) {
-        console.error(err);
+        console.log("Offline load failed:", err);
+
+        // Final fallback → local cache
+        const localData = await db.assets.get(serialNumber);
+        setUnit(localData);
       } finally {
         setLoading(false);
       }

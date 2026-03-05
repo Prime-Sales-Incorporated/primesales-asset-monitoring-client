@@ -222,7 +222,7 @@ const RegisterAsset = () => {
               </div>
             </div>
           </div>
-          {category === "Units" && (
+          {category === "Unit" && (
             <div className="space-y-6 p-4 border rounded-lg bg-slate-50 dark:bg-slate-900">
               {/* Unit Location */}
               <div>

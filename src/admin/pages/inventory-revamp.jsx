@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import API_BASE_URL from "../../API"; // Adjust path if needed
 import { QRCodeCanvas } from "qrcode.react";
 import { Link } from "react-router-dom";
+import db from "../../offline/db";
 
 const categoryIcons = {
   Electronics: "💻",
@@ -14,7 +15,7 @@ const categoryIcons = {
   Misc: "📦",
   Uncategorized: "❓",
   Building: "🏢",
-  Units: "/forklift1.png",
+  Unit: "/forklift1.png",
 };
 
 const statusColors = {
@@ -41,17 +42,42 @@ const AssetInventory = () => {
   };
 
   const fetchAssets = async () => {
+    setLoading(true);
+
     try {
-      const res = await fetch(`${API_BASE_URL}/api/asset/get/all`, {
-        headers: {
-          "ngrok-skip-browser-warning": "true",
-          "Content-Type": "application/json",
-        },
-      });
-      const data = await res.json();
+      let data = [];
+
+      if (navigator.onLine) {
+        const res = await fetch(`${API_BASE_URL}/api/asset/get/all`, {
+          headers: {
+            "ngrok-skip-browser-warning": "true",
+            "Content-Type": "application/json",
+          },
+        });
+
+        data = await res.json();
+
+        // 🔥 Clear old cache first
+        await db.assets.clear();
+
+        // ✅ Then cache fresh data
+        await db.assets.bulkPut(data);
+
+        console.log("Assets cache fully replaced");
+      } else {
+        // 🔴 OFFLINE → load from IndexedDB
+        data = await db.assets.toArray();
+
+        console.log("Loaded assets from local cache");
+      }
+
       setAssets(data);
     } catch (err) {
-      console.error(err);
+      console.error("Asset loading failed:", err);
+
+      // Fallback → local cache
+      const localData = await db.assets.toArray();
+      setAssets(localData);
     } finally {
       setLoading(false);
     }
@@ -78,6 +104,16 @@ const AssetInventory = () => {
       console.error(err);
     }
   };
+
+  useEffect(() => {
+    const handleOnline = () => {
+      fetchAssets();
+    };
+
+    window.addEventListener("online", handleOnline);
+
+    return () => window.removeEventListener("online", handleOnline);
+  }, []);
 
   // Close modal if clicked outside
   const handleClickOutside = (e) => {
