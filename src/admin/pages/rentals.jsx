@@ -54,7 +54,7 @@ export default function RentalsDashboard() {
   // Get unique locations dynamically
   const locations = [
     "All",
-    ...new Set(units.map((unit) => unit.location || "Unassigned")),
+    ...new Set(units.map((unit) => unit.unitLocation || "Unassigned")),
   ];
 
   // Apply filters
