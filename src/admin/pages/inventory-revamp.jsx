@@ -36,6 +36,7 @@ const AssetInventory = () => {
   const modalRef = useRef(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [editingAsset, setEditingAsset] = useState(null);
 
   const toggleDarkMode = () => {
     document.documentElement.classList.toggle("dark");
@@ -87,8 +88,8 @@ const AssetInventory = () => {
     fetchAssets();
   }, []);
 
-  const handleEdit = (assetId) => {
-    console.log("Edit asset:", assetId);
+  const handleEdit = (asset) => {
+    setEditingAsset(asset);
   };
 
   const handleDelete = async (assetId) => {
@@ -154,7 +155,28 @@ const AssetInventory = () => {
     "All",
     ...new Set(assets.map((asset) => asset.category || "Uncategorized")),
   ];
+  const updateAsset = async () => {
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/asset/update/${editingAsset.serialNumber}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(editingAsset),
+        },
+      );
 
+      const updated = await res.json();
+
+      setAssets((prev) =>
+        prev.map((a) => (a._id === updated._id ? updated : a)),
+      );
+
+      setEditingAsset(null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
   return (
     <main className="p-8 bg-slate-50 dark:bg-slate-900 min-h-screen">
       {/* Header */}
@@ -237,7 +259,7 @@ const AssetInventory = () => {
                     category: asset.category || "Uncategorized",
                   })
             }
-            onEdit={() => handleEdit(asset._id)}
+            onEdit={() => handleEdit(asset)}
             onDelete={() => handleDelete(asset._id)}
             onQrClick={() =>
               setPreviewQR(
@@ -306,6 +328,177 @@ const AssetInventory = () => {
                 })()}
               </p>
             </p>
+          </div>
+        </div>
+      )}
+      {editingAsset && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-sm p-6">
+          <div className="w-full max-w-xl bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden">
+            {/* Header */}
+            <header className="px-8 py-6 border-b border-slate-200 flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">
+                  Edit Asset
+                </h2>
+                <p className="text-sm text-slate-500 mt-1">
+                  Update technical specifications and financial details.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setEditingAsset(null)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                ✕
+              </button>
+            </header>
+
+            {/* Form */}
+            <div className="px-8 py-8 space-y-6">
+              {/* Asset Name + Serial */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1">
+                  <label className="text-sm font-semibold text-slate-800">
+                    Asset Name
+                  </label>
+                  <input
+                    className="w-full rounded-lg border-slate-200 text-sm py-2.5"
+                    value={editingAsset.assetName || ""}
+                    onChange={(e) =>
+                      setEditingAsset({
+                        ...editingAsset,
+                        assetName: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-semibold text-slate-800">
+                    Serial Number
+                  </label>
+                  <input
+                    className="w-full rounded-lg border-slate-200 bg-slate-50 text-sm py-2.5"
+                    value={editingAsset.serialNumber || ""}
+                    onChange={(e) =>
+                      setEditingAsset({
+                        ...editingAsset,
+                        serialNumber: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* Issued To + Status */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1">
+                  <label className="text-sm font-semibold text-slate-800">
+                    Issued To
+                  </label>
+                  <input
+                    className="w-full rounded-lg border-slate-200 text-sm py-2.5"
+                    value={editingAsset.issuedTo || ""}
+                    onChange={(e) =>
+                      setEditingAsset({
+                        ...editingAsset,
+                        issuedTo: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-semibold text-slate-800">
+                    Condition
+                  </label>
+
+                  <select
+                    className="w-full rounded-lg border-slate-200 text-sm py-2.5"
+                    value={editingAsset.status || ""}
+                    onChange={(e) =>
+                      setEditingAsset({
+                        ...editingAsset,
+                        status: e.target.value,
+                      })
+                    }
+                  >
+                    <option>Good Condition</option>
+                    <option>For Maintenance</option>
+                    <option>Pending</option>
+                    <option>Retired</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Price + Lifespan */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t pt-6">
+                <div className="space-y-1">
+                  <label className="text-sm font-semibold text-slate-800">
+                    Price
+                  </label>
+
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-slate-400 text-sm">
+                      ₱
+                    </span>
+
+                    <input
+                      type="number"
+                      className="w-full rounded-lg border-slate-200 pl-7 text-sm py-2.5"
+                      value={editingAsset.assetCost || ""}
+                      onChange={(e) =>
+                        setEditingAsset({
+                          ...editingAsset,
+                          assetCost: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-semibold text-slate-800">
+                    Life Span
+                  </label>
+
+                  <div className="relative">
+                    <input
+                      type="number"
+                      className="w-full rounded-lg border-slate-200 pr-16 text-sm py-2.5"
+                      value={editingAsset.lifeSpan || ""}
+                      onChange={(e) =>
+                        setEditingAsset({
+                          ...editingAsset,
+                          lifeSpan: e.target.value,
+                        })
+                      }
+                    />
+
+                    <span className="absolute right-3 top-2.5 text-xs text-slate-400 uppercase">
+                      Months
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-4 pt-6">
+                <button
+                  onClick={() => setEditingAsset(null)}
+                  className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={updateAsset}
+                  className="px-8 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
