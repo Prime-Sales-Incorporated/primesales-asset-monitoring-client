@@ -11,7 +11,7 @@ export default function AuditHistoryModal({ audit, onClose }) {
       <div className="fixed inset-0 bg-black/80 flex justify-center items-center z-50 p-6">
         <div className="bg-white dark:bg-slate-900 rounded-xl max-w-5xl w-full max-h-[90%] overflow-auto shadow-lg">
           {/* Header */}
-          <header className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-primary/20 px-6 py-4">
+          <header className="flex flex-col-reverse md:flex-row justify-between items-start md:items-center border-b border-primary/20 px-6 py-4">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-primary rounded-xl text-white">
                 <span className="material-symbols-outlined text-3xl">
@@ -32,10 +32,11 @@ export default function AuditHistoryModal({ audit, onClose }) {
             </div>
             <button
               onClick={onClose}
-              className="ml-auto flex items-center justify-center rounded-xl h-10 px-4 bg-red-500 text-white font-bold hover:opacity-90 transition-opacity"
+              className="ml-auto flex items-center justify-center rounded-xl h-10 px-0 bg-red- text-white font-bold hover:opacity-90 transition-opacity"
             >
-              <span className="material-symbols-outlined mr-2">close</span>{" "}
-              Close
+              <span className="material-symbols-outlined text-xl text-gray-500 ">
+                close
+              </span>{" "}
             </button>
           </header>
 

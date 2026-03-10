@@ -332,7 +332,7 @@ const AssetInventory = () => {
         </div>
       )}
       {editingAsset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-sm p-6">
+        <div className="fixed inset-0 z-50 flex items-center  justify-center bg-slate-900/20 backdrop-blur-sm p-6">
           <div className="w-full max-w-xl bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden">
             {/* Header */}
             <header className="px-8 py-6 border-b border-slate-200 flex justify-between items-center">
@@ -354,9 +354,9 @@ const AssetInventory = () => {
             </header>
 
             {/* Form */}
-            <div className="px-8 py-8 space-y-6">
+            <div className="px-8 py-8 space-y-6 text-xs">
               {/* Asset Name + Serial */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-2 gap-6">
                 <div className="space-y-1">
                   <label className="text-sm font-semibold text-slate-800">
                     Asset Name
@@ -391,7 +391,7 @@ const AssetInventory = () => {
               </div>
 
               {/* Issued To + Status */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-2 gap-6">
                 <div className="space-y-1">
                   <label className="text-sm font-semibold text-slate-800">
                     Issued To
