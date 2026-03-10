@@ -41,6 +41,7 @@ export default function AuditHistoryModal({ audit, onClose }) {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
             {/* Left Column: Photos */}
+
             <div className="lg:col-span-1 space-y-4">
               {audit.photos.length > 0 ? (
                 <div className="space-y-2 grid grid-cols-1 gap-2">
@@ -113,6 +114,21 @@ export default function AuditHistoryModal({ audit, onClose }) {
                     </div>
                   </section>
                 ))}
+              {/* Signature */}
+              {audit.audit?.signature && (
+                <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                  <div className="bg-slate-50 dark:bg-slate-800/50 px-6 py-3 border-b border-slate-200 dark:border-slate-800">
+                    <h2 className="text-lg font-bold dark:text-white">
+                      Signature
+                    </h2>
+                  </div>
+                  <div className="p-6">
+                    <p className="text-slate-700 dark:text-slate-300 font-semibold">
+                      {audit.audit.signature}
+                    </p>
+                  </div>
+                </section>
+              )}
             </div>
           </div>
         </div>

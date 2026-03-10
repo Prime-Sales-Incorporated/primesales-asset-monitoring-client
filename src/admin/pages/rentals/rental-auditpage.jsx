@@ -4,6 +4,7 @@ import Webcam from "react-webcam";
 import API_BASE_URL from "../../../API";
 import db from "../../../offline/db";
 import AuditHistoryModal from "./audtmodal";
+import { ConfirmDeleteModal } from "./confirmdeletemodal";
 
 /* ========================================
 AUDIT STRUCTURE
@@ -147,7 +148,8 @@ export default function PrimeTrackAudit() {
   const [cameraOpen, setCameraOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const webcamRef = useRef(null);
-
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleteAuditId, setDeleteAuditId] = useState(null);
   const {
     items,
     toggleItem,
@@ -179,6 +181,30 @@ export default function PrimeTrackAudit() {
     };
     fetchHistory();
   }, [serialNumber]);
+
+  const handleDeleteAudit = async () => {
+    if (!deleteAuditId) return;
+    try {
+      // Call your API
+      const res = await fetch(
+        `${API_BASE_URL}/api/audit/delete/${deleteAuditId}`,
+        {
+          method: "DELETE",
+        },
+      );
+      if (!res.ok) throw new Error("Delete failed");
+
+      // Remove from local state
+      setAuditHistory((prev) => prev.filter((a) => a._id !== deleteAuditId));
+      setConfirmDeleteOpen(false);
+      setDeleteAuditId(null);
+      alert("Audit deleted successfully");
+    } catch (err) {
+      console.error(err);
+      alert("Delete error: " + err.message);
+    }
+  };
+
   useEffect(() => {
     const fetchUnit = async () => {
       setLoading(true);
@@ -303,13 +329,24 @@ export default function PrimeTrackAudit() {
             <div className="p-6 space-y-3">
               {auditHistory.length === 0 && <p>No previous audits.</p>}
               {auditHistory.map((audit, index) => (
-                <button
-                  key={index}
-                  className="w-full text-left p-3 border rounded-lg bg-gray-100 dark:bg-slate-700 dark:text-white"
-                  onClick={() => setSelectedAudit(audit)}
-                >
-                  {new Date(audit.createdAt).toLocaleString()}
-                </button>
+                <div key={index} className="flex justify-between items-center">
+                  <button
+                    className="flex-1 text-left p-3 border rounded-lg bg-gray-100 dark:bg-slate-700 dark:text-white mr-2"
+                    onClick={() => setSelectedAudit(audit)}
+                  >
+                    {new Date(audit.createdAt).toLocaleString()}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDeleteAuditId(audit._id);
+                      setConfirmDeleteOpen(true);
+                    }}
+                    className="text-red-500 hover:text-red-700"
+                    title="Delete audit"
+                  >
+                    <span className="material-symbols-outlined">delete</span>
+                  </button>
+                </div>
               ))}
             </div>
           </AuditSection>
@@ -428,7 +465,12 @@ export default function PrimeTrackAudit() {
           </AuditSection>
         </div>
       </main>
-
+      <ConfirmDeleteModal
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={handleDeleteAudit}
+        message="Are you sure you want to delete this audit history?"
+      />
       {/* PHOTO MODAL */}
       {selectedPhoto && (
         <div
