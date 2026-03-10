@@ -65,7 +65,7 @@ export default function RentalsDashboard() {
 
     const matchesLocation =
       selectedLocation === "All" ||
-      (unit.location || "Unassigned") === selectedLocation;
+      (unit.unitLocation || "Unassigned") === selectedLocation;
 
     return matchesSearch && matchesLocation;
   });

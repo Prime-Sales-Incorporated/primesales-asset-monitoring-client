@@ -328,26 +328,41 @@ export default function PrimeTrackAudit() {
           <AuditSection title="Audit History">
             <div className="p-6 space-y-3">
               {auditHistory.length === 0 && <p>No previous audits.</p>}
-              {auditHistory.map((audit, index) => (
-                <div key={index} className="flex justify-between items-center">
-                  <button
-                    className="flex-1 text-left p-3 border rounded-lg bg-gray-100 dark:bg-slate-700 dark:text-white mr-2"
-                    onClick={() => setSelectedAudit(audit)}
+              {auditHistory.map((audit, index) => {
+                const date = new Date(audit.createdAt);
+                const formattedDate = date.toLocaleDateString();
+                const formattedTime = date.toLocaleTimeString();
+
+                return (
+                  <div
+                    key={index}
+                    className="audit-item group flex items-center justify-between p-3 bg-slate-50 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
                   >
-                    {new Date(audit.createdAt).toLocaleString()}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setDeleteAuditId(audit._id);
-                      setConfirmDeleteOpen(true);
-                    }}
-                    className="text-red-500 hover:text-red-700"
-                    title="Delete audit"
-                  >
-                    <span className="material-symbols-outlined">delete</span>
-                  </button>
-                </div>
-              ))}
+                    <button
+                      onClick={() => setSelectedAudit(audit)}
+                      className="flex flex-col text-left flex-1"
+                    >
+                      <span className="text-slate-600 font-medium text-sm">
+                        {formattedDate}
+                      </span>
+                      <span className="text-slate-400 text-xs">
+                        {formattedTime}
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setDeleteAuditId(audit._id);
+                        setConfirmDeleteOpen(true);
+                      }}
+                      className="delete-btn  p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md focus:outline-none focus:ring-2 focus:ring-red-200 transition-all"
+                      title="Delete audit"
+                    >
+                      <span className="material-symbols-outlined">delete</span>
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </AuditSection>
         </aside>
