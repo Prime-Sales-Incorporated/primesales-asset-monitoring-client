@@ -71,7 +71,7 @@ const HybridQRScanner = () => {
       const res = await fetch(
         `${API_BASE_URL}/api/asset/update/${assetDetails.serialNumber}`,
         {
-          method: "PATCH",
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
             "ngrok-skip-browser-warning": "true",
@@ -302,7 +302,7 @@ const HybridQRScanner = () => {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+        <div className="fixed inset-0 bg-black/60 y flex items-center justify-center z-50 px-4">
           <div className="bg-background-light dark:bg-background-dark w-full max-w-xl rounded-xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 relative">
             {/* Header */}
             <header className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50">
@@ -380,6 +380,76 @@ const HybridQRScanner = () => {
                         </span>
                         <span className="text-slate-900 dark:text-slate-100 text-base font-medium">
                           {assetDetails.assetName}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className=" flex items-start gap-4 p-4 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <div className="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-lg shrink-0">
+                        <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">
+                          person
+                        </span>
+                      </div>
+                      <div className="flex flex-col flex-1">
+                        <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                          Issued to
+                        </span>
+                        <span className="text-slate-900 dark:text-slate-100 text-base font-medium">
+                          {assetDetails.issuedTo}
+                        </span>
+                      </div>
+                    </div>
+                    <div className=" flex items-start gap-4 p-4 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <div className="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-lg shrink-0">
+                        <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">
+                          person
+                        </span>
+                      </div>
+                      <div className="flex flex-col flex-1">
+                        <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                          Cost
+                        </span>
+                        <span className="text-slate-900 dark:text-slate-100 text-base font-medium">
+                          ₱ {assetDetails.assetCost}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className=" flex items-start gap-4 p-4 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <div className="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-lg shrink-0">
+                        <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">
+                          calendar_today.
+                        </span>
+                      </div>
+                      <div className="flex flex-col flex-1">
+                        <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                          Purchase Date
+                        </span>
+                        <span className="text-slate-900 dark:text-slate-100 text-base font-medium">
+                          {assetDetails.purchaseDate
+                            ? new Date(
+                                assetDetails.purchaseDate,
+                              ).toLocaleDateString()
+                            : "-"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className=" flex items-start gap-4 p-4 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <div className="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-lg shrink-0">
+                        <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">
+                          calendar_today
+                        </span>
+                      </div>
+                      <div className="flex flex-col flex-1">
+                        <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                          Issue Date
+                        </span>
+                        <span className="text-slate-900 dark:text-slate-100 text-base font-medium">
+                          {assetDetails.issuedDate
+                            ? new Date(
+                                assetDetails.issuedDate,
+                              ).toLocaleDateString()
+                            : "-"}
                         </span>
                       </div>
                     </div>
