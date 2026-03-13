@@ -252,7 +252,7 @@ const AssetInventory = () => {
             }
             life={asset.lifeSpan || "-"}
             qrValue={
-              asset.category === "Units"
+              asset.category === "Unit"
                 ? asset.serialNumber
                 : JSON.stringify({
                     serialNumber: asset.serialNumber,
@@ -263,7 +263,7 @@ const AssetInventory = () => {
             onDelete={() => handleDelete(asset._id)}
             onQrClick={() =>
               setPreviewQR(
-                asset.category === "Units"
+                asset.category === "Unit"
                   ? asset.serialNumber
                   : JSON.stringify({
                       serialNumber: asset.serialNumber,

@@ -305,28 +305,27 @@ const RegisterAsset = () => {
                 onChange={(e) => setIssuedTo(e.target.value)}
               />
             </div>
-            <div className="w-full">
-              <label
-                htmlFor="lifespan"
-                className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
-              >
-                <p className="text-xs text-slate-500 mt-1">
-                  Enter lifespan in months (e.g. 60 = 5 years)
-                </p>
-              </label>
-              <input
-                id="lifepan"
-                type="number"
-                min={1}
-                required
-                placeholder="e.g. 60"
-                className="w-full px-3 py-2 border rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-slate-400 dark:placeholder-slate-500"
-                value={lifeSpan}
-                onChange={(e) => setLifeSpan(e.target.value)}
-              />
-            </div>
           </div>
-
+          <div className="w-full">
+            <label
+              htmlFor="lifespan"
+              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+            >
+              <p className="text-xs text-slate-500 mt-1">
+                Enter lifespan in months (e.g. 60 = 5 years)
+              </p>
+            </label>
+            <input
+              id="lifepan"
+              type="number"
+              min={1}
+              required
+              placeholder="e.g. 60"
+              className="w-full px-3 py-2 border rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-slate-400 dark:placeholder-slate-500"
+              value={lifeSpan}
+              onChange={(e) => setLifeSpan(e.target.value)}
+            />
+          </div>
           <div>
             <label
               htmlFor="asset-cost"
