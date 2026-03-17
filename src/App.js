@@ -32,6 +32,8 @@ import PrimeTrackAudit from "./admin/pages/rentals/rental-auditpage";
 import { useEffect } from "react";
 import db from "./offline/db";
 import API_BASE_URL from "./API";
+import ReportsAnalytics from "./admin/pages/report";
+import InventoryReport from "./admin/pages/reports/inventory-report";
 
 function AppLayout() {
   const location = useLocation();
@@ -162,7 +164,23 @@ function AppLayout() {
                 </PrivateRoute>
               }
             />
+            <Route
+              path="/reports"
+              element={
+                <PrivateRoute>
+                  <ReportsAnalytics />
+                </PrivateRoute>
+              }
+            />
 
+            <Route
+              path="/reports/inventory"
+              element={
+                <PrivateRoute>
+                  <InventoryReport />
+                </PrivateRoute>
+              }
+            />
             <Route
               path="/assets/add"
               element={

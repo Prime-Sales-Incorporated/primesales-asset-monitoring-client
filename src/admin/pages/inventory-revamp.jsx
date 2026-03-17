@@ -3,6 +3,7 @@ import API_BASE_URL from "../../API"; // Adjust path if needed
 import { QRCodeCanvas } from "qrcode.react";
 import { Link } from "react-router-dom";
 import db from "../../offline/db";
+import { fetchAssetsService } from "../../../src/services/assetService";
 
 const categoryIcons = {
   Electronics: "💻",
@@ -42,50 +43,15 @@ const AssetInventory = () => {
     document.documentElement.classList.toggle("dark");
   };
 
-  const fetchAssets = async () => {
+  const load = async () => {
     setLoading(true);
-
-    try {
-      let data = [];
-
-      if (navigator.onLine) {
-        const res = await fetch(`${API_BASE_URL}/api/asset/get/all`, {
-          headers: {
-            "ngrok-skip-browser-warning": "true",
-            "Content-Type": "application/json",
-          },
-        });
-
-        data = await res.json();
-
-        // 🔥 Clear old cache first
-        await db.assets.clear();
-
-        // ✅ Then cache fresh data
-        await db.assets.bulkPut(data);
-
-        console.log("Assets cache fully replaced");
-      } else {
-        // 🔴 OFFLINE → load from IndexedDB
-        data = await db.assets.toArray();
-
-        console.log("Loaded assets from local cache");
-      }
-
-      setAssets(data);
-    } catch (err) {
-      console.error("Asset loading failed:", err);
-
-      // Fallback → local cache
-      const localData = await db.assets.toArray();
-      setAssets(localData);
-    } finally {
-      setLoading(false);
-    }
+    const data = await fetchAssetsService();
+    setAssets(data);
+    setLoading(false);
   };
 
   useEffect(() => {
-    fetchAssets();
+    load();
   }, []);
 
   const handleEdit = (asset) => {
@@ -108,7 +74,7 @@ const AssetInventory = () => {
 
   useEffect(() => {
     const handleOnline = () => {
-      fetchAssets();
+      load();
     };
 
     window.addEventListener("online", handleOnline);
@@ -425,8 +391,7 @@ const AssetInventory = () => {
                   >
                     <option>Good Condition</option>
                     <option>For Maintenance</option>
-                    <option>Pending</option>
-                    <option>Retired</option>
+                    <option>For Disposal</option>
                   </select>
                 </div>
               </div>
