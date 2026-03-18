@@ -303,7 +303,7 @@ const HybridQRScanner = () => {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 y flex items-center justify-center z-50 px-4">
-          <div className="bg-background-light dark:bg-background-dark w-full max-w-xl rounded-xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 relative">
+          <div className="bg-background-light  dark:bg-background-dark w-full max-w-xl rounded-xl shadow-2xl overflow-auto border h-screen border-slate-200 dark:border-slate-800 relative">
             {/* Header */}
             <header className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50">
               <div className="flex items-center gap-3">
@@ -326,13 +326,13 @@ const HybridQRScanner = () => {
             </header>
 
             {/* Content */}
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-6 ">
               {assetDetails?.error ? (
                 <p className="text-red-500 text-sm">{assetDetails.error}</p>
               ) : (
                 <>
                   {/* Info Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
                     {/* Serial */}
                     <div className="flex items-start gap-4 p-4 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 shadow-sm">
                       <div className="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-lg shrink-0">
@@ -350,75 +350,79 @@ const HybridQRScanner = () => {
                       </div>
                     </div>
 
-                    {/* Category */}
-                    <div className="flex items-start gap-4 p-4 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 shadow-sm">
-                      <div className="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-lg shrink-0">
-                        <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">
-                          category
-                        </span>
+                    <div className="flex gap-4">
+                      {/* Category */}
+                      <div className="flex items-start  w-full gap-4 p-4 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <div className="hidden md:block  bg-slate-100 dark:bg-slate-800 p-2.5 rounded-lg shrink-0">
+                          <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">
+                            category
+                          </span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-slate-500 dark:text-slate-400 text-[10px] font-semibold uppercase tracking-wider">
+                            Category
+                          </span>
+                          <span className="text-slate-900 text-[16px] dark:text-slate-100  font-medium">
+                            {assetDetails.category}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
-                          Category
-                        </span>
-                        <span className="text-slate-900 dark:text-slate-100 text-base font-medium">
-                          {assetDetails.category}
-                        </span>
+
+                      {/* Asset Name (Full Width) */}
+                      <div className="md:col-span-2 w-full flex items-start gap-4 p-4 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <div className="hidden md:block bg-slate-100 dark:bg-slate-800 p-2.5 rounded-lg shrink-0">
+                          <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">
+                            laptop_mac
+                          </span>
+                        </div>
+                        <div className="flex flex-col flex-1">
+                          <span className="text-slate-500 dark:text-slate-400 text-[10px] font-semibold uppercase tracking-wider">
+                            Asset Name
+                          </span>
+                          <span className="text-slate-900 dark:text-slate-100 text-base font-medium">
+                            {assetDetails.assetName}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Asset Name (Full Width) */}
-                    <div className="md:col-span-2 flex items-start gap-4 p-4 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 shadow-sm">
-                      <div className="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-lg shrink-0">
-                        <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">
-                          laptop_mac
-                        </span>
+                    <div className="flex gap-4">
+                      <div className="w-full  flex items-start gap-4 p-4 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <div className="hidden md:block bg-slate-100 dark:bg-slate-800 p-2.5 rounded-lg shrink-0">
+                          <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">
+                            person
+                          </span>
+                        </div>
+                        <div className="flex flex-col flex-1">
+                          <span className="text-slate-500 dark:text-slate-400 text-[10px] font-semibold uppercase tracking-wider">
+                            Issued to
+                          </span>
+                          <span className="text-slate-900 dark:text-slate-100 text-base font-medium">
+                            {assetDetails.issuedTo}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex flex-col flex-1">
-                        <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
-                          Asset Name
-                        </span>
-                        <span className="text-slate-900 dark:text-slate-100 text-base font-medium">
-                          {assetDetails.assetName}
-                        </span>
+                      <div className=" w-full flex items-start gap-4 p-4 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <div className="hidden md:block bg-slate-100 dark:bg-slate-800 p-2.5 rounded-lg shrink-0">
+                          <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">
+                            person
+                          </span>
+                        </div>
+                        <div className="flex flex-col flex-1">
+                          <span className="text-slate-500 dark:text-slate-400 text-[10px] font-semibold uppercase tracking-wider">
+                            Cost
+                          </span>
+                          <span className="text-slate-600 dark:text-slate-100 text-base font-medium">
+                            ₱ {assetDetails.assetCost}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
                     <div className=" flex items-start gap-4 p-4 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 shadow-sm">
                       <div className="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-lg shrink-0">
                         <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">
-                          person
-                        </span>
-                      </div>
-                      <div className="flex flex-col flex-1">
-                        <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
-                          Issued to
-                        </span>
-                        <span className="text-slate-900 dark:text-slate-100 text-base font-medium">
-                          {assetDetails.issuedTo}
-                        </span>
-                      </div>
-                    </div>
-                    <div className=" flex items-start gap-4 p-4 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 shadow-sm">
-                      <div className="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-lg shrink-0">
-                        <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">
-                          person
-                        </span>
-                      </div>
-                      <div className="flex flex-col flex-1">
-                        <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
-                          Cost
-                        </span>
-                        <span className="text-slate-900 dark:text-slate-100 text-base font-medium">
-                          ₱ {assetDetails.assetCost}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className=" flex items-start gap-4 p-4 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 shadow-sm">
-                      <div className="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-lg shrink-0">
-                        <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">
-                          calendar_today.
+                          calendar_today
                         </span>
                       </div>
                       <div className="flex flex-col flex-1">

@@ -1,5 +1,5 @@
 // InventoryReport.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   getTotalAssets,
   getTotalValue,
@@ -9,8 +9,12 @@ import {
   getAssetCategoryHealth,
 } from "../../../utils/inventoryReportHelper";
 import { fetchAssetsService } from "../../../services/assetService";
+import { formatCriticalAssets } from "../../../utils/inventoryReportHelper";
+import html2pdf from "html2pdf.js";
 
 const InventoryReport = () => {
+  const reportRef = useRef();
+
   const load = async () => {
     setLoading(true);
     const data = await fetchAssetsService();
@@ -30,6 +34,38 @@ const InventoryReport = () => {
   const criticalAssets = getCriticalAssets(assets);
   const overallHealth = getOverallHealth(assets);
   const categoryHealth = getAssetCategoryHealth(assets);
+  const formattedCriticalAssets = formatCriticalAssets(criticalAssets);
+
+  const handleExportPDF = () => {
+    const element = reportRef.current;
+
+    // 👇 add export mode
+    document.body.classList.add("exporting");
+
+    const opt = {
+      margin: 0.3,
+      filename: "Inventory_Report.pdf",
+      image: { type: "jpeg", quality: "100%" },
+      html2canvas: {
+        scale: 4, // keep this lower
+        scrollX: 0,
+        scrollY: 0,
+      },
+      jsPDF: {
+        unit: "in",
+        format: "a4",
+        orientation: "portrait",
+      },
+    };
+
+    html2pdf()
+      .set(opt)
+      .from(element)
+      .save()
+      .then(() => {
+        document.body.classList.remove("exporting");
+      });
+  };
 
   return (
     <div className="flex min-h-screen bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
@@ -71,7 +107,10 @@ const InventoryReport = () => {
         </header>
 
         {/* Report Content */}
-        <div className="flex-1 overflow-y-auto p-8 max-w-7xl mx-auto w-full space-y-8">
+        <div
+          ref={reportRef}
+          className="flex-1 overflow-y-auto p-8 max-w-7xl mx-auto w-full space-y-8 report-container"
+        >
           {/* Title & Export */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
             <div>
@@ -92,7 +131,10 @@ const InventoryReport = () => {
                 </span>
                 Share
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+              <button
+                onClick={handleExportPDF}
+                className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              >
                 <span className="material-symbols-outlined text-[18px]">
                   download
                 </span>
@@ -299,84 +341,62 @@ const InventoryReport = () => {
                 Critical Assets Requiring Attention
               </h4>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Example Asset Cards */}
-              <div className="bg-white dark:bg-slate-800 p-5 rounded-xl border-l-4 border-l-rose-500 border-y border-r border-slate-200 dark:border-slate-700 shadow-sm">
-                <div className="flex justify-between items-start mb-3">
-                  <span className="text-xs font-bold uppercase text-slate-500">
-                    Asset ID: IT-LP-024
-                  </span>
-                  <span className="bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase">
-                    Poor
-                  </span>
-                </div>
-                <h5 className="font-bold text-slate-900 dark:text-white">
-                  MacBook Pro 16" (M2)
-                </h5>
-                <p className="text-sm text-slate-500 mt-1 italic">
-                  "Persistent display flickering and battery overheating
-                  reported."
-                </p>
-                <div className="mt-4 flex justify-between items-center">
-                  <span className="text-xs font-medium text-slate-400">
-                    Assigned: John Doe
-                  </span>
-                  <button className="text-primary text-xs font-bold hover:underline">
-                    Schedule Repair
-                  </button>
-                </div>
-              </div>
+              {formattedCriticalAssets.map((asset) => (
+                <div
+                  key={asset.id}
+                  className={`bg-white dark:bg-slate-800 p-5 rounded-xl border-l-4 border-y border-r shadow-sm
+      ${
+        asset.statusColor === "rose"
+          ? "border-l-rose-500 border-slate-200 dark:border-slate-700"
+          : asset.statusColor === "amber"
+            ? "border-l-amber-500 border-slate-200 dark:border-slate-700"
+            : "border-l-emerald-500 border-slate-200 dark:border-slate-700"
+      }`}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <span className="text-xs font-bold uppercase text-slate-500">
+                      Asset ID: {asset.assetTag}
+                    </span>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase
+          ${
+            asset.statusColor === "rose"
+              ? "bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400"
+              : asset.statusColor === "amber"
+                ? "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                : "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+          }`}
+                    >
+                      {asset.status}
+                    </span>
+                  </div>
 
-              <div className="bg-white dark:bg-slate-800 p-5 rounded-xl border-l-4 border-l-rose-500 border-y border-r border-slate-200 dark:border-slate-700 shadow-sm">
-                <div className="flex justify-between items-start mb-3">
-                  <span className="text-xs font-bold uppercase text-slate-500">
-                    Asset ID: IT-PR-009
-                  </span>
-                  <span className="bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase">
-                    Hardware Failure
-                  </span>
-                </div>
-                <h5 className="font-bold text-slate-900 dark:text-white">
-                  HP LaserJet Enterprise M608
-                </h5>
-                <p className="text-sm text-slate-500 mt-1 italic">
-                  "Total mechanical failure in the fuser assembly."
-                </p>
-                <div className="mt-4 flex justify-between items-center">
-                  <span className="text-xs font-medium text-slate-400">
-                    Location: Floor 2 (West)
-                  </span>
-                  <button className="text-primary text-xs font-bold hover:underline">
-                    Request Replacement
-                  </button>
-                </div>
-              </div>
+                  <h5 className="font-bold text-slate-900 dark:text-white">
+                    {asset.name}
+                  </h5>
 
-              <div className="bg-white dark:bg-slate-800 p-5 rounded-xl border-l-4 border-l-amber-500 border-y border-r border-slate-200 dark:border-slate-700 shadow-sm">
-                <div className="flex justify-between items-start mb-3">
-                  <span className="text-xs font-bold uppercase text-slate-500">
-                    Asset ID: MHE-FL-002
-                  </span>
-                  <span className="bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase">
-                    Fair / Warning
-                  </span>
+                  <p className="text-sm text-slate-500 mt-1 italic">
+                    "{asset.issue}"
+                  </p>
+                  <p className="text-sm text-slate-500 mt-1 italic">
+                    {asset.issuedDate
+                      ? new Date(asset.issuedDate).toLocaleDateString()
+                      : "-"}
+                  </p>
+
+                  <div className="mt-4 flex justify-between items-center">
+                    <span className="text-xs font-medium text-slate-400">
+                      {asset.assignedTo}
+                    </span>
+                    <button className="text-primary text-xs font-bold hover:underline">
+                      {asset.action}
+                    </button>
+                  </div>
                 </div>
-                <h5 className="font-bold text-slate-900 dark:text-white">
-                  Toyota High-Capacity Forklift
-                </h5>
-                <p className="text-sm text-slate-500 mt-1 italic">
-                  "Hydraulic pressure readings below optimal range. Service
-                  due."
-                </p>
-                <div className="mt-4 flex justify-between items-center">
-                  <span className="text-xs font-medium text-slate-400">
-                    Location: Warehouse A
-                  </span>
-                  <button className="text-primary text-xs font-bold hover:underline">
-                    Mark for Service
-                  </button>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 

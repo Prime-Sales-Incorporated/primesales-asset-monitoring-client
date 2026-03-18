@@ -125,3 +125,34 @@ export const getAssetCategoryHealth = (assets) => {
     };
   });
 };
+
+export const formatCriticalAssets = (assets) => {
+  return assets.map((asset) => {
+    let status = "Good";
+    let statusColor = "emerald";
+    let action = "View Details";
+
+    // Example logic (adjust based on your schema)
+    if (asset.status === "For Disposal" || asset.health <= 50) {
+      status = "Critical";
+      statusColor = "rose";
+      action = "Request Replacement";
+    } else if (asset.status === "For Maintenance" || asset.health <= 70) {
+      status = "Warning";
+      statusColor = "amber";
+      action = "Schedule Maintenance";
+    }
+
+    return {
+      id: asset._id,
+      name: asset.assetName,
+      assetTag: asset.serialNumber,
+      issue: asset.issue || "No issue description provided.",
+      assignedTo: asset.issuedTo || "Unassigned",
+      issuedDate: asset.issuedDate || "Unknown",
+      status,
+      statusColor,
+      action,
+    };
+  });
+};
