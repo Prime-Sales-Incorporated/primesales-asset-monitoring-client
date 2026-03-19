@@ -409,7 +409,7 @@ const HybridQRScanner = () => {
                           </span>
                         </div>
                         <div className="flex flex-col flex-1">
-                          <span className="text-slate-500 dark:text-slate-400 text-[10px] font-semibold uppercase tracking-wider">
+                          <span className="text-slate-500 dark:text-slate-600 text-[10px] font-semibold uppercase tracking-wider">
                             Cost
                           </span>
                           <span className="text-slate-600 dark:text-slate-100 text-base font-medium">
