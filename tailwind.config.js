@@ -8,6 +8,12 @@ module.exports = {
         primary: "#1173d4",
         "background-light": "#f6f7f8",
         "background-dark": "#101922",
+        surface: "#f8f9fa",
+        primary: "#003d9b",
+        green1: "#08DA51",
+        red: "#B44A52",
+
+        "primary-container": "#0052cc",
       },
       fontFamily: {
         display: ["Inter", "sans-serif"],

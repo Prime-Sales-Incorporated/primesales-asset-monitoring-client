@@ -65,7 +65,7 @@ const ReportsAnalytics = () => {
           </p>
 
           <Link to="/reports/inventory">
-            <button className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition">
+            <button className="w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition">
               Generate Report
             </button>
           </Link>
@@ -95,9 +95,12 @@ const ReportsAnalytics = () => {
             Analyze asset valuation over time using Straight-Line or Double
             Declining methods.
           </p>
-          <button className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition">
-            Generate Report
-          </button>
+          <Link to="/reports/finance">
+            {" "}
+            <button className="w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition">
+              Generate Report
+            </button>
+          </Link>
         </article>
 
         {/* Card 3: Rental Utilization */}
@@ -124,7 +127,7 @@ const ReportsAnalytics = () => {
           </p>
 
           <Link to="/reports/inventory">
-            <button className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition">
+            <button className="w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition">
               Generate Report
             </button>
           </Link>
@@ -152,7 +155,7 @@ const ReportsAnalytics = () => {
             Log of all recent asset scans, transfers, and warehouse check-ins/
             check-outs.
           </p>
-          <button className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition">
+          <button className="w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition">
             Generate Report
           </button>
         </article>

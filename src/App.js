@@ -34,6 +34,7 @@ import db from "./offline/db";
 import API_BASE_URL from "./API";
 import ReportsAnalytics from "./admin/pages/report";
 import InventoryReport from "./admin/pages/reports/inventory-report";
+import FinanceReport from "./admin/pages/reports/finance-report";
 
 function AppLayout() {
   const location = useLocation();
@@ -178,6 +179,15 @@ function AppLayout() {
               element={
                 <PrivateRoute>
                   <InventoryReport />
+                </PrivateRoute>
+              }
+            />
+
+            <Route
+              path="/reports/finance"
+              element={
+                <PrivateRoute>
+                  <FinanceReport />
                 </PrivateRoute>
               }
             />

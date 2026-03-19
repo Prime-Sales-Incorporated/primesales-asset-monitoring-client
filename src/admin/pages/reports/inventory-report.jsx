@@ -68,7 +68,7 @@ const InventoryReport = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+    <div className="flex min-h-screen bg-surface dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
       {/* Sidebar */}
 
       {/* Main Content */}
@@ -114,9 +114,9 @@ const InventoryReport = () => {
           {/* Title & Export */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-4xl font-black text-slate-900 dark:text-slate-50 tracking-tight">
+              <h2 className="text-3xl font-extrabold">
                 Inventory Health Summary
-              </h1>
+              </h2>
               <p className="text-slate-500 mt-1 flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px]">
                   calendar_today
@@ -146,77 +146,100 @@ const InventoryReport = () => {
           {/* Top-level Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
             {/* Total Assets */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="bg- dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
               <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                {/* <div className="p-2 bg-primary/10 rounded-lg text-primary">
                   <span className="material-symbols-outlined">inventory</span>
-                </div>
+                </div> */}
                 <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-full">
                   +2.5%
                 </span>
               </div>
-              <p className="text-slate-500 text-sm font-medium uppercase tracking-wider">
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
                 Total Assets
               </p>
-              <h3 className="text-3xl font-bold mt-1">{totalAssets}</h3>
+              <h3 className="text-4xl font-extrabold text-black font-headline">
+                {totalAssets}
+              </h3>
+              <p className="text-xs text-slate-500 mt-4 flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm">info</span>
+                Total Active Asset
+              </p>
             </div>
             {/* Total Value */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="bg- dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
               <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                {/* <div className="p-2 bg-primary/10 rounded-lg text-primary">
                   <span className="material-symbols-outlined">payments</span>
-                </div>
+                </div> */}
                 <span className="text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-500/10 px-2 py-1 rounded-full">
                   -0.8%
                 </span>
               </div>
-              <p className="text-slate-500 text-sm font-medium uppercase tracking-wider">
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
                 Total Value
               </p>
-              <h3 className="text-3xl font-bold mt-1">
+              <h3 className="text-4xl text-primary font-extrabold mt-1">
                 ₱{totalValue.toLocaleString()}
               </h3>
+              <p className="text-xs text-slate-500 mt-4 flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm">info</span>
+                Gross book value of all active assets
+              </p>
             </div>
             {/* Overall Health */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="bg-  dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
               <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                {/* <div className="p-2 bg-primary/10 rounded-lg text-primary">
                   <span className="material-symbols-outlined">favorite</span>
-                </div>
+                </div> */}
                 <span className="text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-500/10 px-2 py-1 rounded-full">
                   -1.2%
                 </span>
               </div>
-              <p className="text-slate-500 text-sm font-medium uppercase tracking-wider">
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
                 Overall Health
               </p>
-              <h3 className="text-3xl font-bold mt-1">{overallHealth}%</h3>
+              <h3 className="text-4xl text-green1 font-extrabold mt-1">
+                {overallHealth}%
+              </h3>
+              <p className="text-xs text-slate-500 mt-4 flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm">info</span>
+                Overall Health of Active Assets
+              </p>
             </div>
+
             {/* Critical Issues */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm ring-2 ring-rose-500/20">
+            <div className="bg-red dark:bg-slate-800 p-6 rounded-xl border  dark:border-slate-700 shadow-sm  ring-rose-500/20">
               <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-rose-100 dark:bg-rose-500/10 rounded-lg text-rose-600 dark:text-rose-400">
+                {/* <div className="p-2 bg-rose-100 dark:bg-rose-500/10 rounded-lg text-rose-600 dark:text-rose-400">
                   <span className="material-symbols-outlined">
                     report_problem
                   </span>
-                </div>
+                </div> */}
                 <span className="text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-500/10 px-2 py-1 rounded-full">
                   +3 New
                 </span>
               </div>
-              <p className="text-slate-500 text-sm font-medium uppercase tracking-wider">
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
                 Critical Issues
               </p>
-              <h3 className="text-3xl font-bold mt-1 text-rose-600 dark:text-rose-400">
+              <h3 className="text-4xl font-extrabold mt-1 text-white">
                 {criticalAssets.length}
               </h3>
+              <p className="text-xs text-slate-300 mt-4 flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm">info</span>
+                Assets in Critical Condition
+              </p>
             </div>
           </div>
 
           {/* Condition by Category */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
             <div className="xl:col-span-1 bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-              <h4 className="text-lg font-bold mb-6">Condition by Category</h4>
+              <h4 className="text-xl font-extrabold  mb-6">
+                Condition by Category
+              </h4>
               <div className="space-y-6">
                 {categoryStats.map((cat) => (
                   <div key={cat.category}>
@@ -261,7 +284,9 @@ const InventoryReport = () => {
             {/* Asset Category Health Table */}
             <div className="xl:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
               <div className="p-6 border-b border-slate-100 dark:border-slate-700">
-                <h4 className="text-lg font-bold">Asset Category Health</h4>
+                <h4 className="text-xl font-extrabold">
+                  Asset Category Health
+                </h4>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
@@ -337,7 +362,7 @@ const InventoryReport = () => {
               <span className="material-symbols-outlined text-rose-500">
                 warning
               </span>
-              <h4 className="text-xl font-bold">
+              <h4 className="text-2xl font-extrabold">
                 Critical Assets Requiring Attention
               </h4>
             </div>
