@@ -35,6 +35,7 @@ import API_BASE_URL from "./API";
 import ReportsAnalytics from "./admin/pages/report";
 import InventoryReport from "./admin/pages/reports/inventory-report";
 import FinanceReport from "./admin/pages/reports/finance-report";
+import Warehouse from "./admin/pages/warehouse/warehouse-stocks";
 
 function AppLayout() {
   const location = useLocation();
@@ -148,6 +149,15 @@ function AppLayout() {
               element={
                 <PrivateRoute>
                   <RentalsDashboard />
+                </PrivateRoute>
+              }
+            />
+
+            <Route
+              path="/warehouse"
+              element={
+                <PrivateRoute>
+                  <Warehouse />
                 </PrivateRoute>
               }
             />

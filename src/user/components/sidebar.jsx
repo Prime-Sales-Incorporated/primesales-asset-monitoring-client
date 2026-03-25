@@ -47,6 +47,7 @@ const Sidebar = ({ mobile = false, isOpen = false, onClose }) => {
             icon: "/depr.png",
           },
           { to: "/assets/rentals", label: "Rentals", icon: "/forklift.png" },
+          { to: "/warehouse", label: "Warehouse", icon: "/warehouse.png" },
           { to: "/reports", label: "Reports", icon: "/analyt.png" },
           { to: "/scanner", label: "Scan", icon: "/scanner.png" },
         ].map((item) => (
