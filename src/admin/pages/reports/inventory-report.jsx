@@ -218,7 +218,7 @@ const InventoryReport = () => {
                   </span>
                 </div> */}
                 <span className="text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-500/10 px-2 py-1 rounded-full">
-                  +3 New
+                  +2 New
                 </span>
               </div>
               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
