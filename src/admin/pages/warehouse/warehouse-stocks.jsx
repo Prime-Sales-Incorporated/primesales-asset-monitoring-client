@@ -11,9 +11,7 @@ export default function WarehouseInventory() {
         <section className="mb-10">
           <div className="flex justify-between items-end mb-8">
             <div>
-              <h1 className="font-extrabold text-4xl tracking-tight">
-                Forklift Parts
-              </h1>
+              <h1 className="font-bold text-2xl t">Forklift Parts</h1>
 
               <p className="text-gray-500 mt-1">
                 Operational Audit: Zone A through F

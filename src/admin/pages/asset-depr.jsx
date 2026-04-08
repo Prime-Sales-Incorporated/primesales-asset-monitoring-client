@@ -30,8 +30,10 @@ const AssetDepreciationDashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [showFullLife, setShowFullLife] = useState(false);
   const [dateSortOrder, setDateSortOrder] = useState(null); // null | "asc" | "desc"
+  const [purchasedYear, setPurchasedYear] = useState("ALL");
+  const [showCurrentFYOnly, setShowCurrentFYOnly] = useState(false);
 
-  const stickyCols = [120, 90, 89, 65, 98, 89, 120]; // px
+  const stickyCols = [120, 90, 89, 65, 90, 85, 120]; // px
   const leftOffsets = stickyCols.reduce((acc, w, i) => {
     acc.push(i === 0 ? 0 : acc[i - 1] + stickyCols[i - 1]);
     return acc;
@@ -75,10 +77,30 @@ const AssetDepreciationDashboard = () => {
     ...new Set(assets.map((a) => a.category).filter(Boolean)),
   ];
 
-  let filteredAssets =
-    selectedCategory === "ALL"
-      ? [...assets]
-      : assets.filter((a) => a.category === selectedCategory);
+  const fiscalStart = new Date(selectedFiscalYear, 5, 1); // June 1
+  const fiscalEnd = new Date(selectedFiscalYear + 1, 4, 31); // May 31
+
+  let filteredAssets = assets.filter((a) => {
+    const categoryMatch =
+      selectedCategory === "ALL" || a.category === selectedCategory;
+
+    if (!a.purchaseDate) return false;
+
+    const purchase = new Date(a.purchaseDate);
+    const purchaseYear = purchase.getFullYear();
+
+    // Check Purchased Year filter
+    const purchasedYearMatch =
+      purchasedYear === "ALL" || purchaseYear === Number(purchasedYear);
+
+    if (!purchasedYearMatch) return false;
+
+    if (!showCurrentFYOnly) return categoryMatch;
+
+    const inFiscalYear = purchase >= fiscalStart && purchase <= fiscalEnd;
+
+    return categoryMatch && inFiscalYear;
+  });
 
   if (dateSortOrder) {
     filteredAssets.sort((a, b) => {
@@ -100,7 +122,7 @@ const AssetDepreciationDashboard = () => {
   const exportToExcel = async () => {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Depreciation");
-    sheet.views = [{ state: "frozen", xSplit: 7, ySplit: 3 }];
+    sheet.views = [{ state: "frozen", xSplit: 7, ySplit: 2 }];
 
     const headerLabels = showFullLife
       ? timeline.map((t) => t.label)
@@ -113,14 +135,18 @@ const AssetDepreciationDashboard = () => {
     sheet.mergeCells(1, 1, 1, totalColumns);
     titleRow.alignment = { horizontal: "center" };
 
+    const purchaseFilterNote = showCurrentFYOnly
+      ? " (All purchased this fiscal year)"
+      : "";
+
     const fiscalRow = sheet.addRow([
       showFullLife
-        ? "Full Lifespan View"
+        ? `Full Lifespan View${purchaseFilterNote}`
         : `Fiscal Year: ${selectedFiscalYear}-${selectedFiscalYear + 1} ${
             selectedQuarter !== "ALL"
               ? `– Quarter: Q${selectedQuarter}`
               : "(Full Fiscal Year)"
-          }`,
+          }${purchaseFilterNote}`,
     ]);
     fiscalRow.font = { bold: true };
     sheet.mergeCells(2, 1, 2, totalColumns);
@@ -132,7 +158,24 @@ const AssetDepreciationDashboard = () => {
         fgColor: { argb: "FFFF00" },
       };
     });
+    // Define widths for your columns
+    const columnWidths = [
+      20, // Particulars
+      12, // Class
+      12, // Date
+      8, // Life
+      20, // Cost
+      18, // Beg. NBV
+      18, // End NBV
+      // monthly columns will all be 10
+      ...Array(headerLabels.length).fill(12),
+      18, // Acc. Depr
+    ];
 
+    // Apply widths
+    sheet.columns.forEach((col, i) => {
+      col.width = columnWidths[i] || 10; // default 10 if undefined
+    });
     const headers = [
       "Particulars",
       "Class",
@@ -193,7 +236,7 @@ const AssetDepreciationDashboard = () => {
             colNumber,
           )
         ) {
-          cell.numFmt = "₱#,##0.00";
+          cell.numFmt = "#,##0.00";
           cell.alignment = { horizontal: "right" };
         }
       });
@@ -366,6 +409,26 @@ const AssetDepreciationDashboard = () => {
                     ))}
                   </select>
                 </div>
+                <div>
+                  <label className="text-xs font-bold block text-on-surface-variant uppercase tracking-widest">
+                    Purchased Year
+                  </label>
+                  <select
+                    value={purchasedYear}
+                    onChange={(e) => setPurchasedYear(e.target.value)}
+                    className="rounded-lg border px-2 py-1 dark:bg-slate-900"
+                  >
+                    <option value="ALL">ALL</option>
+                    {Array.from(
+                      { length: maxFiscalYear - 2019 },
+                      (_, i) => 2020 + i,
+                    ).map((y) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
                 <label
                   class="text-sm gap-2 flex items-center font-semibold text-slate-700"
@@ -379,7 +442,15 @@ const AssetDepreciationDashboard = () => {
                   />
                   Show Full Lifespan
                 </label>
-
+                <label class="text-sm gap-2 flex items-center font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={showCurrentFYOnly}
+                    onChange={(e) => setShowCurrentFYOnly(e.target.checked)}
+                    className="rounded text-blue-500 focus:ring-blue-500/20 w-5 h-5 border-slate-300"
+                  />
+                  Purchased this Fiscal Year
+                </label>
                 <button
                   onClick={exportToExcel}
                   className="ml-auto bg-emerald-600 text-white px-4 py-2 rounded-lg"
