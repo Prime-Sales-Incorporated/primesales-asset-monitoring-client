@@ -33,7 +33,7 @@ const AssetDepreciationDashboard = () => {
   const [purchasedYear, setPurchasedYear] = useState("ALL");
   const [showCurrentFYOnly, setShowCurrentFYOnly] = useState(false);
 
-  const stickyCols = [120, 90, 89, 65, 90, 85, 120]; // px
+  const stickyCols = [120, 85, 89, 65, 95, 90, 120]; // px
   const leftOffsets = stickyCols.reduce((acc, w, i) => {
     acc.push(i === 0 ? 0 : acc[i - 1] + stickyCols[i - 1]);
     return acc;
@@ -483,7 +483,7 @@ const AssetDepreciationDashboard = () => {
           {/* Table */}
           <div className="bg-white dark:bg-slate-800 w-full rounded-xl border dark:border-slate-700 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm border-collapse">
+              <table className="min-w-full text-sm border-collapse table-fixed">
                 <thead>
                   <tr className="bg-slate-100 dark:bg-slate-700 text-xs uppercase tracking-wider">
                     <th
@@ -659,8 +659,8 @@ const AssetDepreciationDashboard = () => {
                       }
                     ></td>
 
-                    <td className="px-4 py-3 text-right text-green-500">
-                      ₱{formatMoney(totalPeriodDep)}
+                    <td className="px-4 py-3 text-right text-xs text-green-500">
+                      {formatMoney(totalPeriodDep)}
                     </td>
                   </tr>
                 </tfoot>
