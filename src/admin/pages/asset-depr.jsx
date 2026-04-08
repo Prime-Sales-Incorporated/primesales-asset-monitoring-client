@@ -33,7 +33,7 @@ const AssetDepreciationDashboard = () => {
   const [purchasedYear, setPurchasedYear] = useState("ALL");
   const [showCurrentFYOnly, setShowCurrentFYOnly] = useState(false);
 
-  const stickyCols = [120, 85, 89, 65, 95, 90, 120]; // px
+  const stickyCols = [120, 85, 89, 50, 95, 90, 120]; // px
   const leftOffsets = stickyCols.reduce((acc, w, i) => {
     acc.push(i === 0 ? 0 : acc[i - 1] + stickyCols[i - 1]);
     return acc;
