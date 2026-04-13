@@ -7,15 +7,12 @@ import {
 } from "react-router-dom";
 import PrivateRoute from "./context/PrivateRoute";
 
-import AdminLogin from "./admin/pages/login";
 import MainDashboard from "./admin/pages/dashboard";
 import RegisterAsset from "./admin/pages/asset-add";
 import TransactionsOffline from "./sample";
-import RegisterUser from "./user/pages/register";
 import LoginUser from "./user/pages/login";
 import LandingPage from "./user/pages/homepage";
 import LoginAdmin from "./admin/pages/login";
-import RegisterAdmin from "./admin/pages/register";
 import HybridQRScanner from "./scanner";
 import CameraTest from "./cameraTest";
 import { Toaster } from "react-hot-toast";
@@ -29,9 +26,6 @@ import AssetInventory from "./admin/pages/inventory-revamp";
 import RentalsDashboard from "./admin/pages/rentals";
 import PrimeTrackAudit from "./admin/pages/rentals/rental-auditpage";
 
-import { useEffect } from "react";
-import db from "./offline/db";
-import API_BASE_URL from "./API";
 import ReportsAnalytics from "./admin/pages/report";
 import InventoryReport from "./admin/pages/reports/inventory-report";
 import FinanceReport from "./admin/pages/reports/finance-report";
@@ -49,22 +43,30 @@ function AppLayout() {
     "/admin/register",
   ];
 
-  const hideSidebar = hideSidebarRoutes.includes(location.pathname);
+  // Better login detection
+  const token = localStorage.getItem("userToken");
+  const user = localStorage.getItem("userInfo");
+  const isLoggedIn = !!token || !!user;
+
+  // Hide sidebar logic
+  const hideSidebar =
+    hideSidebarRoutes.includes(location.pathname) ||
+    (location.pathname === "/scanner" && !isLoggedIn);
 
   return (
     <div className="min-h-screen flex">
       {/* DESKTOP SIDEBAR */}
       {!hideSidebar && (
         <div className="hidden lg:block h-screen">
-          <Sidebar />
+          {" "}
+          <Sidebar />{" "}
         </div>
       )}
-
-      {/* MOBILE SIDEBAR DRAWER */}
+      {/* MOBILE SIDEBAR */}
       {!hideSidebar && (
         <>
           <div
-            className={`fixed top-0 left-0 h-full  bg-slate-950 z-50 w-48 transition-transform duration-300 lg:hidden ${
+            className={`fixed top-0 left-0 h-full bg-slate-950 z-50 w-48 transition-transform duration-300 lg:hidden ${
               sidebarOpen ? "translate-x-0" : "-translate-x-full"
             }`}
           >
@@ -79,15 +81,15 @@ function AppLayout() {
           )}
         </>
       )}
-
-      {/* MAIN CONTENT AREA */}
+      {/* MAIN CONTENT */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        {/* MOBILE TOP HEADER */}
+        {/* MOBILE HEADER */}
         {!hideSidebar && (
           <div className="lg:hidden flex justify-between items-center p-4 bg-white shadow">
             <button onClick={() => setSidebarOpen(true)} className="text-2xl">
               ☰
             </button>
+
             <div className="h-10 w-28">
               <img src="/logo.png" alt="Logo" className="h-10" />
             </div>
@@ -96,27 +98,26 @@ function AppLayout() {
           </div>
         )}
 
-        {/* ROUTES AREA (SCROLLABLE CONTENT) */}
-        <div className="flex-1 overflow-auto  bg-gray-50">
+        {/* ROUTES */}
+        <div className="flex-1 overflow-auto bg-gray-50">
           <Toaster position="top-right" />
 
           <Routes>
-            {/* Website Routes */}
+            {/* WEBSITE ROUTES */}
             <Route path="/home" element={<Home />} />
             <Route path="/solutions" element={<OurSolutions />} />
             <Route path="/main" element={<WebsiteMain />} />
 
-            {/* Public Routes */}
+            {/* PUBLIC ROUTES */}
             <Route path="/cam" element={<CameraTest />} />
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginUser />} />
-            <Route path="/register" element={<RegisterUser />} />
             <Route path="/admin/login" element={<LoginAdmin />} />
-            <Route path="/admin/register" element={<RegisterAdmin />} />
 
-            {/* Protected Routes */}
+            {/* SCANNER */}
             <Route path="/scanner" element={<HybridQRScanner />} />
 
+            {/* DASHBOARD */}
             <Route
               path="/dashboard"
               element={
@@ -126,6 +127,7 @@ function AppLayout() {
               }
             />
 
+            {/* INVENTORY */}
             <Route
               path="/inv"
               element={
@@ -144,6 +146,7 @@ function AppLayout() {
               }
             />
 
+            {/* RENTALS */}
             <Route
               path="/assets/rentals"
               element={
@@ -154,6 +157,12 @@ function AppLayout() {
             />
 
             <Route
+              path="/assets/rentals/details/:serialNumber"
+              element={<PrimeTrackAudit />}
+            />
+
+            {/* WAREHOUSE */}
+            <Route
               path="/warehouse"
               element={
                 <PrivateRoute>
@@ -162,11 +171,7 @@ function AppLayout() {
               }
             />
 
-            <Route
-              path="/assets/rentals/details/:serialNumber"
-              element={<PrimeTrackAudit />}
-            />
-
+            {/* DEPRECIATION */}
             <Route
               path="/assets/depreciation"
               element={
@@ -175,6 +180,8 @@ function AppLayout() {
                 </PrivateRoute>
               }
             />
+
+            {/* REPORTS */}
             <Route
               path="/reports"
               element={
@@ -201,6 +208,8 @@ function AppLayout() {
                 </PrivateRoute>
               }
             />
+
+            {/* ADD ASSET */}
             <Route
               path="/assets/add"
               element={
@@ -210,6 +219,7 @@ function AppLayout() {
               }
             />
 
+            {/* OFFLINE TRANSACTIONS */}
             <Route
               path="/trans"
               element={
@@ -228,7 +238,8 @@ function AppLayout() {
 function App() {
   return (
     <Router>
-      <AppLayout />
+      {" "}
+      <AppLayout />{" "}
     </Router>
   );
 }

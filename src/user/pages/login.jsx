@@ -6,22 +6,9 @@ import API_BASE_URL from "../../API";
 const LoginUser = () => {
   const navigate = useNavigate();
 
-  const [dark, setDark] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("darkMode") === "true";
-    }
-    return false;
-  });
-
   const [formData, setFormData] = useState({ username: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    localStorage.setItem("darkMode", dark);
-    if (dark) document.documentElement.classList.add("dark");
-    else document.documentElement.classList.remove("dark");
-  }, [dark]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -118,15 +105,15 @@ const LoginUser = () => {
               </p>
             )}
           </form>
-          <p className="mt-4 text-center text-sm text-slate-600 dark:text-slate-400">
-            Don't have an account?{" "}
+          {/* <p className="mt-4 text-center text-sm text-slate-600 dark:text-slate-400">
+            Need an account?{" "}
             <Link
               to="/register"
               className="font-medium text-primary hover:text-primary/80"
             >
-              Sign Up
+              Contact your Administrator
             </Link>
-          </p>
+          </p> */}
         </div>
       </div>
     </div>

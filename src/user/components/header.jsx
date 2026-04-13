@@ -31,7 +31,7 @@ const Header = () => {
       {/* Nav + Dark Mode */}
       <div className="flex items-center gap-6">
         {/* Nav */}
-        <nav className="hidden md:flex gap-4">
+        {/* <nav className="hidden md:flex gap-4">
           <Link
             to="/dashboard"
             className="text-slate-800 dark:text-white hover:"
@@ -59,7 +59,7 @@ const Header = () => {
           <Link to="/scanner" className="text-slate-800 dark:text-white hover:">
             Scan
           </Link>
-        </nav>
+        </nav> */}
 
         {/* Dark Mode Toggle */}
         {/* <div
