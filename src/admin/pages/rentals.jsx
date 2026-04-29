@@ -95,10 +95,10 @@ export default function RentalsDashboard() {
             <div className="flex items-center gap-3">
               {/* Search */}
               <input
-                placeholder="Search serial..."
+                placeholder="Search by serial number"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="px-4 py-2 rounded-xl border bg-white dark:bg-slate-800 w-44  dark:border-slate-700"
+                className="px-4 py-2 rounded-xl border bg-white dark:bg-slate-800 w-54  dark:border-slate-700"
               />
 
               {/* Location Filter */}

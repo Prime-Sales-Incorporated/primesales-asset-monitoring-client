@@ -6,6 +6,7 @@ import db from "../../offline/db";
 import { fetchAssetsService } from "../../../src/services/assetService";
 
 const categoryIcons = {
+  "Office Eqpt and Furniture": "💻  ",
   Electronics: "💻",
   "IT Equipment": "🖥️",
   Vehicles: "🚗",
@@ -344,7 +345,7 @@ const AssetInventory = () => {
                     Serial Number
                   </label>
                   <input
-                    className="w-full rounded-lg border-slate-200 bg-slate-50 text-sm py-2.5"
+                    className="w-full p-2 rounded-lg border-slate-200 bg-slate-50 text-sm py-2.5"
                     value={editingAsset.serialNumber || ""}
                     onChange={(e) =>
                       setEditingAsset({
@@ -404,13 +405,13 @@ const AssetInventory = () => {
                   </label>
 
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-slate-400 text-sm">
+                    {/* <span className="absolute left-3 top-2.5 text-slate-400 text-sm">
                       ₱
-                    </span>
+                    </span> */}
 
                     <input
                       type="number"
-                      className="w-full rounded-lg border-slate-200 pl-7 text-sm py-2.5"
+                      className="w-full rounded-lg border-slate-200 p-2 text-sm py-2.5"
                       value={editingAsset.assetCost || ""}
                       onChange={(e) =>
                         setEditingAsset({
@@ -419,6 +420,9 @@ const AssetInventory = () => {
                         })
                       }
                     />
+                    <span className="absolute right-6 top-2.5 text-xs text-slate-400 uppercase">
+                      Php
+                    </span>
                   </div>
                 </div>
 
@@ -451,7 +455,7 @@ const AssetInventory = () => {
               <div className="flex justify-end gap-4 pt-6">
                 <button
                   onClick={() => setEditingAsset(null)}
-                  className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
+                  className="px-5 py-2.5 text-sm font-semibold bg-gray-200 text-slate-600 hover:bg-slate-100 rounded-lg"
                 >
                   Cancel
                 </button>
@@ -493,9 +497,17 @@ const AssetCard = ({
   return (
     <div className="bg-white overflow-auto hover:border-amber-400 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all overflow-">
       <div className="p-6">
+        <div className="justify-end flex">
+          <span
+            className={`px-1.5 py-1 text-[10px]   font-semibold  rounded-full ${statusColors[status] || statusColors.Unknown}`}
+          >
+            {status}
+          </span>
+        </div>
+
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center text-3xl overflow-hidden">
+            <div className="w-12 h-12  dark:bg-slate-700 rounded-2xl flex items-center justify-center text-3xl overflow-hidden">
               {icon.startsWith("http") || icon.startsWith("/") ? (
                 <img
                   src={icon}
@@ -506,18 +518,16 @@ const AssetCard = ({
                 icon
               )}
             </div>
+
             <div>
-              <h3 className="font-bold text-lg dark:text-white">{title}</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <h3 className="font-bold text-[10px] md:text-sm dark:text-white mt-2">
+                {title}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {category}
               </p>
             </div>
           </div>
-          <span
-            className={`px-2.5 py-1 text-xs font-semibold rounded-full ${statusColors[status] || statusColors.Unknown}`}
-          >
-            {status}
-          </span>
         </div>
 
         <div className="grid grid-cols-2 gap-y-3 mb-4 text-sm">
@@ -585,7 +595,7 @@ const AssetCard = ({
               Edit
             </button>
             <button
-              className="px-3 py-1.5 text-xs bg-red-100 text-red-600 rounded-lg hover:bg-red-200 dark:hover:bg-red-600 transition"
+              className="px-3 py-1.5 text-xs bg-red1 text-white rounded-lg hover:bg-red1-200 dark:hover:bg-red-600 transition"
               onClick={onDelete}
             >
               Delete

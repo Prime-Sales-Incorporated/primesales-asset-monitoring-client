@@ -6,7 +6,6 @@ import { FaArrowUp, FaArrowDown } from "react-icons/fa6";
 import Header from "../components/header";
 import API_BASE_URL from "../../API";
 
-// Import your helpers
 import {
   getMonthlySchedule,
   getNBVForPeriod,
@@ -29,15 +28,20 @@ const AssetDepreciationDashboard = () => {
   const [selectedQuarter, setSelectedQuarter] = useState("ALL");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [showFullLife, setShowFullLife] = useState(false);
-  const [dateSortOrder, setDateSortOrder] = useState(null); // null | "asc" | "desc"
+  const [dateSortOrder, setDateSortOrder] = useState(null);
   const [purchasedYear, setPurchasedYear] = useState("ALL");
   const [showCurrentFYOnly, setShowCurrentFYOnly] = useState(false);
 
-  const stickyCols = [120, 85, 89, 50, 95, 90, 120]; // px
+  // FIX 1: stickyCols widths must match what you set on every cell via style.
+  // These are the px widths of the first 7 frozen columns.
+  const stickyCols = [170, 120, 85, 65, 120, 120, 20];
   const leftOffsets = stickyCols.reduce((acc, w, i) => {
     acc.push(i === 0 ? 0 : acc[i - 1] + stickyCols[i - 1]);
     return acc;
   }, []);
+
+  // The total frozen width — used as minWidth so the table overflows correctly
+  const frozenWidth = stickyCols.reduce((a, b) => a + b, 0);
 
   const formatMoney = (v) =>
     new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(v || 0);
@@ -59,7 +63,7 @@ const AssetDepreciationDashboard = () => {
           const schedule = getMonthlySchedule(a);
           if (schedule.length) {
             const last = schedule[schedule.length - 1];
-            lastYear = Math.max(lastYear, last.year); // assume helper already maps fiscal year if needed
+            lastYear = Math.max(lastYear, last.year);
           }
         });
         setMaxFiscalYear(lastYear);
@@ -77,28 +81,20 @@ const AssetDepreciationDashboard = () => {
     ...new Set(assets.map((a) => a.category).filter(Boolean)),
   ];
 
-  const fiscalStart = new Date(selectedFiscalYear, 5, 1); // June 1
-  const fiscalEnd = new Date(selectedFiscalYear + 1, 4, 31); // May 31
+  const fiscalStart = new Date(selectedFiscalYear, 5, 1);
+  const fiscalEnd = new Date(selectedFiscalYear + 1, 4, 31);
 
   let filteredAssets = assets.filter((a) => {
     const categoryMatch =
       selectedCategory === "ALL" || a.category === selectedCategory;
-
     if (!a.purchaseDate) return false;
-
     const purchase = new Date(a.purchaseDate);
     const purchaseYear = purchase.getFullYear();
-
-    // Check Purchased Year filter
     const purchasedYearMatch =
       purchasedYear === "ALL" || purchaseYear === Number(purchasedYear);
-
     if (!purchasedYearMatch) return false;
-
     if (!showCurrentFYOnly) return categoryMatch;
-
     const inFiscalYear = purchase >= fiscalStart && purchase <= fiscalEnd;
-
     return categoryMatch && inFiscalYear;
   });
 
@@ -117,7 +113,50 @@ const AssetDepreciationDashboard = () => {
       ? fiscalMonths
       : quarterMap[selectedQuarter];
 
-  let totalPeriodDep = 0;
+  const rowData = filteredAssets.map((asset) => {
+    const schedule = getMonthlySchedule(asset);
+    const beginningNBV = getBeginningNBV(asset, selectedFiscalYear);
+    const endingNBV = getNBVForPeriod(
+      asset,
+      selectedFiscalYear,
+      selectedQuarter === "ALL" ? "ALL" : Number(selectedQuarter),
+    );
+
+    const deps = showFullLife
+      ? timeline.map((t) => {
+          const e = schedule.find(
+            (s) => s.year === t.year && s.month === t.month,
+          );
+          return e ? e.dep : 0;
+        })
+      : selectedQuarter === "ALL"
+        ? getScheduleForFiscalYear(schedule, selectedFiscalYear)
+        : getScheduleForQuarter(
+            schedule,
+            selectedFiscalYear,
+            Number(selectedQuarter),
+          );
+
+    const periodTotal = deps.reduce((a, b) => a + b, 0);
+    return { asset, schedule, beginningNBV, endingNBV, deps, periodTotal };
+  });
+
+  const totalCost = rowData.reduce(
+    (sum, r) => sum + (Number(r.asset.assetCost) || 0),
+    0,
+  );
+  const totalBegNBV = rowData.reduce((sum, r) => sum + r.beginningNBV, 0);
+  const totalEndNBV = rowData.reduce((sum, r) => sum + r.endingNBV, 0);
+  const totalPeriodDep = rowData.reduce((sum, r) => sum + r.periodTotal, 0);
+
+  const colCount = showFullLife
+    ? timeline
+      ? timeline.length
+      : 0
+    : headerMonths.length;
+  const monthlyTotals = Array.from({ length: colCount }, (_, i) =>
+    rowData.reduce((sum, r) => sum + (r.deps[i] || 0), 0),
+  );
 
   const exportToExcel = async () => {
     const workbook = new ExcelJS.Workbook();
@@ -128,7 +167,7 @@ const AssetDepreciationDashboard = () => {
       ? timeline.map((t) => t.label)
       : headerMonths.map((m) => months[m]);
 
-    const totalColumns = 7 + headerLabels.length + 1; // first 7 + months + Total
+    const totalColumns = 7 + headerLabels.length + 1;
 
     const titleRow = sheet.addRow(["Asset Depreciation Report"]);
     titleRow.font = { bold: true, size: 16 };
@@ -138,7 +177,6 @@ const AssetDepreciationDashboard = () => {
     const purchaseFilterNote = showCurrentFYOnly
       ? " (All purchased this fiscal year)"
       : "";
-
     const fiscalRow = sheet.addRow([
       showFullLife
         ? `Full Lifespan View${purchaseFilterNote}`
@@ -158,24 +196,22 @@ const AssetDepreciationDashboard = () => {
         fgColor: { argb: "FFFF00" },
       };
     });
-    // Define widths for your columns
-    const columnWidths = [
-      20, // Particulars
-      12, // Class
-      12, // Date
-      8, // Life
-      20, // Cost
-      18, // Beg. NBV
-      18, // End NBV
-      // monthly columns will all be 10
-      ...Array(headerLabels.length).fill(12),
-      18, // Acc. Depr
-    ];
 
-    // Apply widths
+    const columnWidths = [
+      20,
+      12,
+      12,
+      8,
+      20,
+      18,
+      18,
+      ...Array(headerLabels.length).fill(12),
+      18,
+    ];
     sheet.columns.forEach((col, i) => {
-      col.width = columnWidths[i] || 10; // default 10 if undefined
+      col.width = columnWidths[i] || 10;
     });
+
     const headers = [
       "Particulars",
       "Class",
@@ -191,31 +227,7 @@ const AssetDepreciationDashboard = () => {
     headerRow.font = { bold: true };
     headerRow.alignment = { horizontal: "center" };
 
-    filteredAssets.forEach((asset) => {
-      const schedule = getMonthlySchedule(asset);
-      const beginningNBV = getBeginningNBV(asset, selectedFiscalYear);
-      const endingNBV = getNBVForPeriod(
-        asset,
-        selectedFiscalYear,
-        selectedQuarter === "ALL" ? "ALL" : Number(selectedQuarter),
-      );
-      const deps = showFullLife
-        ? timeline.map((t) => {
-            const e = schedule.find(
-              (s) => s.year === t.year && s.month === t.month,
-            );
-            return e ? e.dep : 0;
-          })
-        : selectedQuarter === "ALL"
-          ? getScheduleForFiscalYear(schedule, selectedFiscalYear)
-          : getScheduleForQuarter(
-              schedule,
-              selectedFiscalYear,
-              Number(selectedQuarter),
-            );
-
-      const periodTotal = deps.reduce((a, b) => a + b, 0);
-
+    rowData.forEach(({ asset, deps, beginningNBV, endingNBV, periodTotal }) => {
       const row = sheet.addRow([
         asset.assetName,
         asset.category,
@@ -229,7 +241,6 @@ const AssetDepreciationDashboard = () => {
         ...deps,
         periodTotal,
       ]);
-
       row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
         if (
           [5, 6, 7, ...deps.map((_, i) => 8 + i), totalColumns].includes(
@@ -240,6 +251,30 @@ const AssetDepreciationDashboard = () => {
           cell.alignment = { horizontal: "right" };
         }
       });
+    });
+
+    const totalsRow = sheet.addRow([
+      "TOTAL",
+      "",
+      "",
+      "",
+      totalCost,
+      totalBegNBV,
+      totalEndNBV,
+      ...monthlyTotals,
+      totalPeriodDep,
+    ]);
+    totalsRow.font = { bold: true };
+    totalsRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      if (colNumber >= 5) {
+        cell.numFmt = "#,##0.00";
+        cell.alignment = { horizontal: "right" };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "E2EFDA" },
+        };
+      }
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
@@ -262,99 +297,37 @@ const AssetDepreciationDashboard = () => {
       </div>
     );
 
-  // const quarterMap = {
-  //   1: "Jun - Aug",
-  //   2: "Sep - Nov",
-  //   3: "Dec - Feb",
-  //   4: "Mar - May",
-  // };
+  // ── Shared style helpers ──────────────────────────────────────────────────
+  // The last frozen column (index 6, End NBV) gets a right border as a visual
+  // divider between the frozen zone and the scrollable columns.
+  const DIVIDER = "2px solid #cbd5e1";
+
+  const stickyTh = (i, extra = {}) => ({
+    left: leftOffsets[i],
+    width: stickyCols[i],
+    minWidth: stickyCols[i],
+    ...(i === 6 ? { borderRight: DIVIDER } : {}),
+    ...extra,
+  });
+
+  const stickyTd = (i, extra = {}) => ({
+    left: leftOffsets[i],
+    width: stickyCols[i],
+    minWidth: stickyCols[i],
+    ...(i === 6 ? { borderRight: DIVIDER } : {}),
+    ...extra,
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:text-slate-100">
       <div className="mx-auto w-[1366px] max-w-full">
         <main className="p-6 space-y-6">
           {/* Filters */}
-          {/* <div className="flex flex-wrap gap-4 items-end bg- dark:bg-slate-800 p-4 rounded-xl  dark:border-slate-700">
-            <div>
-              <label class="text-xs font-bold block text-on-surface-variant uppercase tracking-widest">
-                Fiscal Year
-              </label>
-              <select
-                disabled={showFullLife}
-                value={selectedFiscalYear}
-                onChange={(e) => setSelectedFiscalYear(Number(e.target.value))}
-                className="rounded-lg border px-2 py-1 dark:bg-slate-900"
-              >
-                {Array.from(
-                  { length: maxFiscalYear - 2020 + 1 },
-                  (_, i) => 2020 + i,
-                ).map((y) => (
-                  <option key={y} value={y}>
-                    {y}-{y + 1}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label class="text-xs font-bold block text-on-surface-variant uppercase tracking-widest">
-                Period
-              </label>
-
-              <select
-                value={selectedQuarter}
-                onChange={(e) => setSelectedQuarter(e.target.value)}
-                className="rounded-lg border px-2 py-1 dark:bg-slate-900"
-              >
-                <option value="ALL">Fiscal Year</option>
-                {Object.entries(quarterMap).map(([q, months]) => (
-                  <option key={q} value={q}>
-                    Q{q} ({months})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label class="text-xs block font-bold text-on-surface-variant uppercase tracking-widest">
-                Asset Category
-              </label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="rounded-lg border px-2 py-1 dark:bg-slate-900"
-              >
-                {categories.map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-
-            <label
-              class="text-sm gap-2 flex items-center font-semibold text-slate-700"
-              for="lifespan"
-            >
-              <input
-                type="checkbox"
-                checked={showFullLife}
-                onChange={(e) => setShowFullLife(e.target.checked)}
-                className="rounded text-emerald-500 focus:ring-emerald-500/20 w-5 h-5 border-slate-300"
-              />
-              Show Full Lifespan
-            </label>
-
-            <button
-              onClick={exportToExcel}
-              className="ml-auto bg-emerald-600 text-white px-4 py-2 rounded-lg"
-            >
-              Export to Excel
-            </button>
-          </div> */}
-          <section class="mb-10 grid grid-cols-12 gap-6 items-end">
-            <div class="col-span-12 md:col-span-8 flex flex-wrap gap-8 items-end bg-surface-container-lowest p-2 rounded-xl editorial-shadow">
-              <div className="flex flex-wrap gap-4 items-end bg- dark:bg-slate-800 p-4 rounded-xl  dark:border-slate-700">
+          <section className="mb-10 grid grid-cols-12 gap-6 items-end">
+            <div className="col-span-12 md:col-span-8 flex flex-wrap gap-8 items-end bg-surface-container-lowest p-2 rounded-xl editorial-shadow">
+              <div className="flex flex-wrap gap-4 items-end bg- dark:bg-slate-800 p-4 rounded-xl dark:border-slate-700">
                 <div>
-                  <label class="text-xs font-bold block text-on-surface-variant uppercase tracking-widest">
+                  <label className="text-xs font-bold block text-on-surface-variant uppercase tracking-widest">
                     Fiscal Year
                   </label>
                   <select
@@ -377,10 +350,9 @@ const AssetDepreciationDashboard = () => {
                 </div>
 
                 <div>
-                  <label class="text-xs font-bold block text-on-surface-variant uppercase tracking-widest">
+                  <label className="text-xs font-bold block text-on-surface-variant uppercase tracking-widest">
                     Period
                   </label>
-
                   <select
                     value={selectedQuarter}
                     onChange={(e) => setSelectedQuarter(e.target.value)}
@@ -396,7 +368,7 @@ const AssetDepreciationDashboard = () => {
                 </div>
 
                 <div>
-                  <label class="text-xs block font-bold text-on-surface-variant uppercase tracking-widest">
+                  <label className="text-xs block font-bold text-on-surface-variant uppercase tracking-widest">
                     Asset Category
                   </label>
                   <select
@@ -409,6 +381,7 @@ const AssetDepreciationDashboard = () => {
                     ))}
                   </select>
                 </div>
+
                 <div>
                   <label className="text-xs font-bold block text-on-surface-variant uppercase tracking-widest">
                     Purchased Year
@@ -430,10 +403,7 @@ const AssetDepreciationDashboard = () => {
                   </select>
                 </div>
 
-                <label
-                  class="text-sm gap-2 flex items-center font-semibold text-slate-700"
-                  for="lifespan"
-                >
+                <label className="text-sm gap-2 flex items-center font-semibold text-slate-700">
                   <input
                     type="checkbox"
                     checked={showFullLife}
@@ -442,7 +412,8 @@ const AssetDepreciationDashboard = () => {
                   />
                   Show Full Lifespan
                 </label>
-                <label class="text-sm gap-2 flex items-center font-semibold text-slate-700">
+
+                <label className="text-sm gap-2 flex items-center font-semibold text-slate-700">
                   <input
                     type="checkbox"
                     checked={showCurrentFYOnly}
@@ -451,6 +422,7 @@ const AssetDepreciationDashboard = () => {
                   />
                   Purchased this Fiscal Year
                 </label>
+
                 <button
                   onClick={exportToExcel}
                   className="ml-auto bg-emerald-600 text-white px-4 py-2 rounded-lg"
@@ -459,18 +431,19 @@ const AssetDepreciationDashboard = () => {
                 </button>
               </div>
             </div>
-            <div class="col-span-12 md:col-span-4 bg-emerald-50 p-6 rounded-xl border border-emerald-100 flex justify-between items-center ">
+
+            <div className="col-span-12 md:col-span-4 bg-emerald-50 p-6 rounded-xl border border-emerald-100 flex justify-between items-center">
               <div>
-                <p class="text-xs font-bold text-on-tertiary-fixed-variant uppercase tracking-widest mb-1">
+                <p className="text-xs font-bold text-on-tertiary-fixed-variant uppercase tracking-widest mb-1">
                   Active Asset Value
                 </p>
-                <h3 class="text-2xl font-headline font-extrabold text-on-tertiary-fixed">
+                <h3 className="text-2xl font-headline font-extrabold text-on-tertiary-fixed">
                   $1,428,950.00
                 </h3>
               </div>
-              <div class="w-12 h-12 rounded-full bg-emerald-400/20 flex items-center justify-center text-emerald-600">
+              <div className="w-12 h-12 rounded-full bg-emerald-400/20 flex items-center justify-center text-emerald-600">
                 <span
-                  class="material-symbols-outlined text-3xl"
+                  className="material-symbols-outlined text-3xl"
                   data-icon="account_balance_wallet"
                   data-weight="fill"
                 >
@@ -482,26 +455,37 @@ const AssetDepreciationDashboard = () => {
 
           {/* Table */}
           <div className="bg-white dark:bg-slate-800 w-full rounded-xl border dark:border-slate-700 overflow-hidden">
+            {/*
+                FIX 2: overflow-x: auto lives here on the wrapper div (already correct).
+                FIX 3: The <table> no longer has w-48 or the broken "table-" class.
+                      Instead it uses border-collapse and a large enough minWidth so
+                      horizontal scrolling actually triggers. The frozen 7 cols occupy
+                      `frozenWidth` px; the rest is for the dynamic month columns.
+              */}
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm border-collapse table-fixed">
+              <table
+                className="text-xs border-collapse"
+                style={{ minWidth: `${frozenWidth + colCount * 90 + 160}px` }}
+              >
                 <thead>
                   <tr className="bg-slate-100 dark:bg-slate-700 text-xs uppercase tracking-wider">
+                    {/* ── Frozen columns ─────────────────────────── */}
                     <th
-                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest"
-                      style={{ left: leftOffsets[0], width: stickyCols[0] }}
+                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest"
+                      style={stickyTh(0)}
                     >
                       Particulars
                     </th>
                     <th
-                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest"
-                      style={{ left: leftOffsets[1], width: stickyCols[1] }}
+                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest"
+                      style={stickyTh(1)}
                     >
                       Class
                     </th>
                     <th
                       onClick={handleDateSort}
-                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 cursor-pointer select-none text-[11px] font-bold text-on-surface-variant uppercase tracking-widest"
-                      style={{ left: leftOffsets[2], width: stickyCols[2] }}
+                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 cursor-pointer select-none text-[10px] font-bold text-on-surface-variant uppercase tracking-widest"
+                      style={stickyTh(2)}
                     >
                       <div className="flex items-center gap-1">
                         Date
@@ -510,97 +494,74 @@ const AssetDepreciationDashboard = () => {
                       </div>
                     </th>
                     <th
-                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest"
-                      style={{ left: leftOffsets[3], width: stickyCols[3] }}
+                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest"
+                      style={stickyTh(3)}
                     >
                       Life mos.
                     </th>
                     <th
-                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest"
-                      style={{ left: leftOffsets[4], width: stickyCols[4] }}
+                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest"
+                      style={stickyTh(4)}
                     >
                       Cost
                     </th>
                     <th
-                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-right"
-                      style={{ left: leftOffsets[5], width: stickyCols[5] }}
+                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-right text-[10px] font-bold text-on-surface-variant uppercase tracking-widest"
+                      style={stickyTh(5)}
                     >
                       Beg. NBV
                     </th>
-
+                    {/* FIX 4: Last frozen column gets the visual right-border divider */}
                     <th
-                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-right"
-                      style={{ left: leftOffsets[6], width: stickyCols[6] }}
+                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-right text-[10px] font-bold text-on-surface-variant uppercase tracking-widest"
+                      style={stickyTh(6)}
                     >
                       End NBV
                     </th>
+
+                    {/* ── Scrollable month columns ────────────────── */}
                     {(showFullLife ? timeline : headerMonths).map((m, i) => (
                       <th
                         key={i}
-                        className="px-2 py-3 text-center bg-blue-50 dark:bg-blue-900/20 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest"
+                        className="px-2 py-3 text-center bg-blue-50 dark:bg-blue-900/20 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest"
+                        style={{ minWidth: 90 }}
                       >
                         {showFullLife ? m.label : months[m]}
                       </th>
                     ))}
-                    <th className="px-4 py-3 text-right text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">
+
+                    <th
+                      className="px-4 py-3 text-right text-[11px] font-bold text-on-surface-variant uppercase tracking-widest"
+                      style={{ minWidth: 120 }}
+                    >
                       Accumulated Depr.
                     </th>
                   </tr>
                 </thead>
 
                 <tbody className="divide-y dark:divide-slate-700">
-                  {filteredAssets.map((asset) => {
-                    const schedule = getMonthlySchedule(asset);
-                    const beginningNBV = getBeginningNBV(
-                      asset,
-                      selectedFiscalYear,
-                    );
-                    const endingNBV = getNBVForPeriod(
-                      asset,
-                      selectedFiscalYear,
-                      selectedQuarter === "ALL"
-                        ? "ALL"
-                        : Number(selectedQuarter),
-                    );
-
-                    const deps = showFullLife
-                      ? timeline.map((t) => {
-                          const e = schedule.find(
-                            (s) => s.year === t.year && s.month === t.month,
-                          );
-                          return e ? e.dep : 0;
-                        })
-                      : selectedQuarter === "ALL"
-                        ? getScheduleForFiscalYear(schedule, selectedFiscalYear)
-                        : getScheduleForQuarter(
-                            schedule,
-                            selectedFiscalYear,
-                            Number(selectedQuarter),
-                          );
-
-                    const periodTotal = deps.reduce((a, b) => a + b, 0);
-                    totalPeriodDep += periodTotal;
-
-                    return (
+                  {rowData.map(
+                    ({ asset, beginningNBV, endingNBV, deps, periodTotal }) => (
                       <tr
                         key={asset._id}
                         className="hover:bg-slate-50 dark:hover:bg-slate-700/40"
                       >
+                        {/* ── Frozen cells ──────────────────────────── */}
                         <td
-                          className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 text-xs font-medium"
-                          style={{ left: leftOffsets[0], width: stickyCols[0] }}
+                          className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 text-[10px] font-medium"
+                          style={stickyTd(0)}
                         >
                           {asset.assetName}
                         </td>
                         <td
-                          className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 text-slate-500 text-xs font-medium"
-                          style={{ left: leftOffsets[1], width: stickyCols[1] }}
+                          className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 text-slate-500 text-[10px] font-medium"
+                          style={stickyTd(1)}
                         >
                           {asset.category}
                         </td>
                         <td
-                          className="sticky z-20 bg-white dark:bg-slate-800 text-slate-500  px-4 py-3 text-xs font-medium"
-                          style={{ left: leftOffsets[2], width: stickyCols[2] }}
+                          className="sticky z-20 bg-white dark:bg-slate-800 text-slate-500 px-4 py-3 text-[10px] font-medium"
+                          style={stickyTd(2)}
                         >
                           {asset.purchaseDate
                             ? new Date(asset.purchaseDate).toLocaleDateString(
@@ -609,57 +570,110 @@ const AssetDepreciationDashboard = () => {
                             : "-"}
                         </td>
                         <td
-                          className="sticky z-20 bg-white dark:bg-slate-800  text-slate-500  px-4 py-3 text-xs font-medium px-4 py-3"
-                          style={{ left: leftOffsets[3], width: stickyCols[3] }}
+                          className="sticky z-20 bg-white dark:bg-slate-800 text-slate-500 px-4 py-3 text-[10px] font-medium"
+                          style={stickyTd(3)}
                         >
                           {asset.lifeSpan}
                         </td>
                         <td
-                          className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 font-medium text-xs text-slate-800 "
-                          style={{ left: leftOffsets[4], width: stickyCols[4] }}
+                          className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 font-medium text-[10px] text-slate-800"
+                          style={stickyTd(4)}
                         >
                           {formatMoney(asset.assetCost)}
                         </td>
                         <td
-                          className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 text-right text-indigo-600 font-semibold text-xs"
-                          style={{ left: leftOffsets[5], width: stickyCols[5] }}
+                          className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 text-right text-indigo-600 font-semibold text-[10px]"
+                          style={stickyTd(5)}
                         >
                           {formatMoney(beginningNBV)}
                         </td>
+                        {/* FIX 4: divider on last frozen cell */}
                         <td
-                          className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 text-right text-blue-600 font-semibold text-xs"
-                          style={{ left: leftOffsets[6], width: stickyCols[6] }}
+                          className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 text-right text-blue-600 font-semibold text-[10px]"
+                          style={stickyTd(6)}
                         >
                           {formatMoney(endingNBV)}
                         </td>
+
+                        {/* ── Scrollable dep cells ──────────────────── */}
                         {deps.map((d, i) => (
                           <td
                             key={i}
-                            className="px-2 py-3 text-center text-slate-600 text-xs"
+                            className="px-2 py-3 text-center text-slate-600 text-[10px]"
                           >
                             {d > 0 ? formatMoney(d) : "-"}
                           </td>
                         ))}
-                        <td className="px-4 py-3 text-right font-bold text-green-500 text-xs">
+                        <td className="px-4 py-3 text-right font-bold text-green-500 text-[10px]">
                           {formatMoney(periodTotal)}
                         </td>
                       </tr>
-                    );
-                  })}
+                    ),
+                  )}
                 </tbody>
 
                 <tfoot>
-                  <tr className="bg-slate-100 w-fu dark:bg-slate-700 font-bold">
-                    <td colSpan={5} className="px-4 py-3 text-right">
-                      Total Accumulated Depr.
+                  <tr className="bg-slate-100 dark:bg-slate-700 font-bold border-t-2 border-slate-300 dark:border-slate-500">
+                    {/*
+                        FIX 5: Replace the single colSpan={4} cell with 4 individual cells.
+                        colSpan breaks sticky positioning — each cell must have its own
+                        explicit left offset and width for the browser to honour position:sticky.
+                      */}
+                    <td
+                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-xs font-extrabold text-slate-700 dark:text-slate-200 uppercase tracking-wider"
+                      style={stickyTd(0)}
+                    >
+                      TOTAL
                     </td>
                     <td
-                      colSpan={
-                        showFullLife ? timeline.length : headerMonths.length + 2
-                      }
-                    ></td>
+                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3"
+                      style={stickyTd(1)}
+                    />
+                    <td
+                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3"
+                      style={stickyTd(2)}
+                    />
+                    <td
+                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3"
+                      style={stickyTd(3)}
+                    />
 
-                    <td className="px-4 py-3 text-right text-xs text-green-500">
+                    {/* Total Cost */}
+                    <td
+                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-right text-[10px] font-extrabold text-slate-800 dark:text-slate-100"
+                      style={stickyTd(4)}
+                    >
+                      {formatMoney(totalCost)}
+                    </td>
+
+                    {/* Total Beg. NBV */}
+                    <td
+                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-right text-[10px] font-extrabold text-indigo-700 dark:text-indigo-300"
+                      style={stickyTd(5)}
+                    >
+                      {formatMoney(totalBegNBV)}
+                    </td>
+
+                    {/* Total End NBV — last frozen cell, gets divider */}
+                    <td
+                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-right text-xs font-extrabold text-blue-700 dark:text-blue-300"
+                      style={stickyTd(6)}
+                    >
+                      {formatMoney(totalEndNBV)}
+                    </td>
+
+                    {/* Per-month totals */}
+                    {monthlyTotals.map((mt, i) => (
+                      <td
+                        key={i}
+                        className="px-2 py-3 text-center text-xs font-extrabold text-slate-700 dark:text-slate-200 bg-blue-50 dark:bg-blue-900/30"
+                      >
+                        {mt > 0 ? formatMoney(mt) : "-"}
+                      </td>
+                    ))}
+
+                    {/* Total Accumulated Depr. */}
+                    <td className="px-4 py-3 text-right text-xs font-extrabold text-green-600 dark:text-green-400">
                       {formatMoney(totalPeriodDep)}
                     </td>
                   </tr>

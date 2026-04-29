@@ -138,11 +138,18 @@ const RegisterAsset = () => {
                 onChange={(e) => setCategory(e.target.value)}
               >
                 <option value="">Select category</option>
-                <option value="Electronic">Electronic</option>
-                <option value="Office Supplies">Office Supply</option>
-                <option value="Furniture">Furniture</option>
-                <option value="Vehicle">Vehicle</option>
-                <option value="Unit">Unit</option>
+                <option value="Land Property">Land Property</option>
+                <option value="Office Eqpt & Furniture">
+                  Office Eqpt & Furniture
+                </option>
+
+                <option value="Rental Eqpt">Rental Eqpt</option>
+
+                <option value="Tools & Eqpt">Tools & Eqpt</option>
+
+                <option value="Office Bldng">Office Bldng</option>
+                <option value="Building Imp">Building Imp</option>
+                <option value="Service Vehicles">Service Vehicles</option>
               </select>
             </div>
 

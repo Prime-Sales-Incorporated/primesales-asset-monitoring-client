@@ -66,7 +66,7 @@ const ReportsAnalytics = () => {
 
           <Link to="/reports/inventory">
             <button className="w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition">
-              Generate Report
+              View Report
             </button>
           </Link>
         </article>
@@ -98,7 +98,7 @@ const ReportsAnalytics = () => {
           <Link to="/reports/finance">
             {" "}
             <button className="w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition">
-              Generate Report
+              View Report
             </button>
           </Link>
         </article>
@@ -128,7 +128,7 @@ const ReportsAnalytics = () => {
 
           <Link to="/reports/inventory">
             <button className="w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition">
-              Generate Report
+              View Report
             </button>
           </Link>
         </article>
@@ -156,7 +156,7 @@ const ReportsAnalytics = () => {
             check-outs.
           </p>
           <button className="w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition">
-            Generate Report
+            View Report
           </button>
         </article>
       </section>

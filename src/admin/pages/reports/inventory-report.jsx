@@ -158,7 +158,7 @@ const InventoryReport = () => {
               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
                 Total Assets
               </p>
-              <h3 className="text-4xl font-extrabold text-black font-headline">
+              <h3 className="text-3xl font-extrabold text-black font-headline">
                 {totalAssets}
               </h3>
               <p className="text-xs text-slate-500 mt-4 flex items-center gap-1">
@@ -179,7 +179,7 @@ const InventoryReport = () => {
               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
                 Total Value
               </p>
-              <h3 className="text-4xl text-primary font-extrabold mt-1">
+              <h3 className="text-3xl text-primary font-extrabold mt-1">
                 ₱{totalValue.toLocaleString()}
               </h3>
               <p className="text-xs text-slate-500 mt-4 flex items-center gap-1">
@@ -200,7 +200,7 @@ const InventoryReport = () => {
               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
                 Overall Health
               </p>
-              <h3 className="text-4xl text-green1 font-extrabold mt-1">
+              <h3 className="text-3xl text-green1 font-extrabold mt-1">
                 {overallHealth}%
               </h3>
               <p className="text-xs text-slate-500 mt-4 flex items-center gap-1">
@@ -224,7 +224,7 @@ const InventoryReport = () => {
               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
                 Critical Issues
               </p>
-              <h3 className="text-4xl font-extrabold mt-1 text-white">
+              <h3 className="text-3xl font-extrabold mt-1 text-white">
                 {criticalAssets.length}
               </h3>
               <p className="text-xs text-slate-300 mt-4 flex items-center gap-1">

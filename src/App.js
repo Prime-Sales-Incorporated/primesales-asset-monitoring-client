@@ -30,6 +30,7 @@ import ReportsAnalytics from "./admin/pages/report";
 import InventoryReport from "./admin/pages/reports/inventory-report";
 import FinanceReport from "./admin/pages/reports/finance-report";
 import Warehouse from "./admin/pages/warehouse/warehouse-stocks";
+import ScrollToTop from "./admin/hooks/scrollToTop";
 
 function AppLayout() {
   const location = useLocation();
@@ -55,6 +56,7 @@ function AppLayout() {
 
   return (
     <div className="min-h-screen flex">
+      <ScrollToTop />
       {/* DESKTOP SIDEBAR */}
       {!hideSidebar && (
         <div className="hidden lg:block h-screen">
@@ -99,7 +101,7 @@ function AppLayout() {
         )}
 
         {/* ROUTES */}
-        <div className="flex-1 overflow-auto bg-gray-50">
+        <div id="main-scroll" className="flex-1 overflow-auto bg-gray-50">
           <Toaster position="top-right" />
 
           <Routes>

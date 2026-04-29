@@ -12,6 +12,7 @@ module.exports = {
         primary: "#003d9b",
         green1: "#08DA51",
         red: "#B44A52",
+        red1: "#B44A53",
 
         "primary-container": "#0052cc",
         "surface-container": "#eceef0",
