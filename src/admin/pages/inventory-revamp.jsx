@@ -1,12 +1,11 @@
 import React, { useEffect, useState, useRef } from "react";
-import API_BASE_URL from "../../API"; // Adjust path if needed
 import { QRCodeCanvas } from "qrcode.react";
 import { Link } from "react-router-dom";
-import db from "../../offline/db";
+import API_BASE_URL from "../../API";
 import { fetchAssetsService } from "../../../src/services/assetService";
 
 const categoryIcons = {
-  "Office Eqpt and Furniture": "💻  ",
+  "Office Eqpt and Furniture": "💻",
   Electronics: "💻",
   "IT Equipment": "🖥️",
   Vehicles: "🚗",
@@ -22,28 +21,34 @@ const categoryIcons = {
 
 const statusColors = {
   "Good Condition":
-    "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400",
+    "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400",
   "For Maintenance":
-    "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400",
-  Retired: "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400",
-  Unknown: "bg-gray-100 dark:bg-gray-900/30 text-gray-600 dark:text-gray-400",
+    "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400",
+  Retired: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400",
+  Unknown: "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400",
   Pending:
-    "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400",
+    "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400",
 };
 
+const ITEMS_PER_PAGE = 8;
+
+/* ─────────────────────────────────────────────
+   Main Component
+───────────────────────────────────────────── */
 const AssetInventory = () => {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [previewQR, setPreviewQR] = useState(null);
-  const modalRef = useRef(null);
+  const [view, setView] = useState("card"); // "card" | "table"
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedStatus, setSelectedStatus] = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [previewQR, setPreviewQR] = useState(null);
   const [editingAsset, setEditingAsset] = useState(null);
+  const modalRef = useRef(null);
+  const editModalRef = useRef(null);
 
-  const toggleDarkMode = () => {
-    document.documentElement.classList.toggle("dark");
-  };
-
+  /* ── Data loading ── */
   const load = async () => {
     setLoading(true);
     const data = await fetchAssetsService();
@@ -55,13 +60,99 @@ const AssetInventory = () => {
     load();
   }, []);
 
-  const handleEdit = (asset) => {
-    setEditingAsset(asset);
+  useEffect(() => {
+    const handleOnline = () => load();
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, []);
+
+  /* ── QR modal close on outside click ── */
+  useEffect(() => {
+    const handle = (e) => {
+      if (modalRef.current && !modalRef.current.contains(e.target))
+        setPreviewQR(null);
+    };
+    if (previewQR) document.addEventListener("mousedown", handle);
+    else document.removeEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [previewQR]);
+
+  /* ── Edit modal close on outside click ── */
+  useEffect(() => {
+    const handle = (e) => {
+      if (editModalRef.current && !editModalRef.current.contains(e.target))
+        setEditingAsset(null);
+    };
+    if (editingAsset) document.addEventListener("mousedown", handle);
+    else document.removeEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [editingAsset]);
+
+  /* ── Filtering ── */
+  const filteredAssets = assets.filter((a) => {
+    const q = searchTerm.toLowerCase();
+    const matchSearch =
+      (a.assetName || "").toLowerCase().includes(q) ||
+      (a.serialNumber || "").toLowerCase().includes(q);
+    const matchCat =
+      selectedCategory === "All" ||
+      (a.category || "Uncategorized") === selectedCategory;
+    const matchStatus =
+      selectedStatus === "All" || (a.status || "Unknown") === selectedStatus;
+    return matchSearch && matchCat && matchStatus;
+  });
+
+  const categories = [
+    "All",
+    ...new Set(assets.map((a) => a.category || "Uncategorized")),
+  ];
+
+  /* ── Pagination ── */
+  const totalPages = Math.ceil(filteredAssets.length / ITEMS_PER_PAGE);
+  const paginated = filteredAssets.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
+
+  const getPageNumbers = () => {
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+      if (
+        i === 1 ||
+        i === totalPages ||
+        (i >= currentPage - 1 && i <= currentPage + 1)
+      )
+        pages.push(i);
+      else if (pages[pages.length - 1] !== "...") pages.push("...");
+    }
+    return pages;
+  };
+
+  /* ── CRUD ── */
+  const handleEdit = (asset) => setEditingAsset({ ...asset });
+
+  const updateAsset = async () => {
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/asset/update/${editingAsset.serialNumber}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(editingAsset),
+        },
+      );
+      const updated = await res.json();
+      setAssets((prev) =>
+        prev.map((a) => (a._id === updated._id ? updated : a)),
+      );
+      setEditingAsset(null);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleDelete = async (assetId) => {
     if (!window.confirm("Are you sure you want to delete this asset?")) return;
-
     try {
       await fetch(`${API_BASE_URL}/api/asset/delete/${assetId}`, {
         method: "DELETE",
@@ -73,208 +164,505 @@ const AssetInventory = () => {
     }
   };
 
-  useEffect(() => {
-    const handleOnline = () => {
-      load();
-    };
+  const qrValue = (asset) =>
+    asset.category === "Rental Eqpt"
+      ? asset.serialNumber
+      : JSON.stringify({
+          serialNumber: asset.serialNumber,
+          category: asset.category || "Uncategorized",
+        });
 
-    window.addEventListener("online", handleOnline);
+  /* ── Stats ── */
+  const goodCount = filteredAssets.filter(
+    (a) => a.status === "Good Condition",
+  ).length;
 
-    return () => window.removeEventListener("online", handleOnline);
-  }, []);
+  const maintCount = filteredAssets.filter(
+    (a) => a.status === "For Maintenance",
+  ).length;
 
-  // Close modal if clicked outside
-  const handleClickOutside = (e) => {
-    if (modalRef.current && !modalRef.current.contains(e.target)) {
-      setPreviewQR(null);
-    }
-  };
-
-  useEffect(() => {
-    if (previewQR) {
-      document.addEventListener("mousedown", handleClickOutside);
-    } else {
-      document.removeEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [previewQR]);
+  const dispCount = filteredAssets.filter(
+    (a) => a.status === "For Disposal",
+  ).length;
+  const totalCost = filteredAssets.reduce(
+    (sum, a) => sum + (Number(a.assetCost) || 0),
+    0,
+  );
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen text-lg">
+      <div className="flex items-center justify-center h-screen text-slate-500">
         Loading assets...
       </div>
     );
   }
-  const filteredAssets = assets.filter((asset) => {
-    const matchesSerial = asset.serialNumber
-      ?.toLowerCase()
-      .includes(searchTerm.toLowerCase());
 
-    const matchesCategory =
-      selectedCategory === "All" ||
-      (asset.category || "Uncategorized") === selectedCategory;
-
-    return matchesSerial && matchesCategory;
-  });
-
-  const categories = [
-    "All",
-    ...new Set(assets.map((asset) => asset.category || "Uncategorized")),
-  ];
-  const updateAsset = async () => {
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/asset/update/${editingAsset.serialNumber}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(editingAsset),
-        },
-      );
-
-      const updated = await res.json();
-
-      setAssets((prev) =>
-        prev.map((a) => (a._id === updated._id ? updated : a)),
-      );
-
-      setEditingAsset(null);
-    } catch (err) {
-      console.error(err);
-    }
-  };
   return (
-    <main className="p-8 bg-slate-50 dark:bg-slate-900 min-h-screen">
-      {/* Header */}
-      <header className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+    <main className="p-6 bg-slate-50 dark:bg-slate-900 min-h-screen">
+      {/* ── Header ── */}
+      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
         <div>
           <h2 className="text-2xl font-bold dark:text-white">
             Asset Inventory
           </h2>
-          <p className="text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Manage and track your organization's physical assets.
           </p>
         </div>
 
-        <div className="flex items-center gap-4">
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-2 rounded-xl w-28 bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 text-sm"
-          >
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-
-          <div className="relative ">
-            <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Search */}
+          <div className="relative">
+            <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
               search
             </span>
             <input
               type="text"
-              placeholder="Serial Number..."
+              placeholder="Name or serial…"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 rounded-xl  bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-blue-500 w-36 md:w-40 text-sm"
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-9 pr-3 h-9 rounded-lg bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-blue-500 w-44 text-sm outline-none"
             />
           </div>
-          {/* 
-          <button
-            onClick={toggleDarkMode}
-            className="p-2 rounded-xl bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 text-slate-500 dark:text-slate-400"
+
+          {/* Category filter */}
+          <select
+            value={selectedCategory}
+            onChange={(e) => {
+              setSelectedCategory(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="h-9 px-3 rounded-lg bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 text-sm"
           >
-            <span className="material-icons-round dark:hidden">dark_mode</span>
-            <span className="material-icons-round hidden dark:block">
-              light_mode
-            </span>
-          </button> */}
+            {categories.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+
+          {/* Status filter */}
+          <select
+            value={selectedStatus}
+            onChange={(e) => {
+              setSelectedStatus(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="h-9 px-3 rounded-lg bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 text-sm"
+          >
+            {["All", "Good Condition", "For Maintenance", "For Disposal"].map(
+              (s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ),
+            )}
+          </select>
+
+          {/* View toggle */}
+          <div className="flex rounded-lg ring-1 ring-slate-200 dark:ring-slate-700 overflow-hidden">
+            <button
+              onClick={() => setView("card")}
+              className={`flex items-center gap-1.5 px-3 h-9 text-sm transition ${
+                view === "card"
+                  ? "bg-white dark:bg-slate-800 font-medium text-slate-900 dark:text-white"
+                  : "bg-slate-100 dark:bg-slate-900 text-slate-500"
+              }`}
+            >
+              <span className="material-icons-round text-[16px]">
+                grid_view
+              </span>
+              Cards
+            </button>
+            <button
+              onClick={() => {
+                setView("table");
+                setCurrentPage(1);
+              }}
+              className={`flex items-center gap-1.5 px-3 h-9 text-sm transition ${
+                view === "table"
+                  ? "bg-white dark:bg-slate-800 font-medium text-slate-900 dark:text-white"
+                  : "bg-slate-100 dark:bg-slate-900 text-slate-500"
+              }`}
+            >
+              <span className="material-icons-round text-[16px]">
+                table_rows
+              </span>
+              Table
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Asset Cards */}
-      <div className="grid grid-cols-1  md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredAssets.map((asset) => (
-          <AssetCard
-            key={asset._id}
-            icon={
-              categoryIcons[asset.category] || categoryIcons["Uncategorized"]
-            }
-            title={asset.assetName}
-            category={asset.category || "Uncategorized"}
-            purchaseDate={asset.purchaseDate}
-            issueDate={asset.issuedDate}
-            status={asset.status || "Unknown"}
-            statusColor={statusColors[asset.status] || "gray"}
-            description={asset.description || "No description available."}
-            serial={asset.serialNumber || "-"}
-            issued={asset.issuedTo || "-"}
-            cost={
-              asset.assetCost
-                ? `₱${Number(asset.assetCost).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`
-                : "-"
-            }
-            life={asset.lifeSpan || "-"}
-            qrValue={
-              asset.category === "Unit"
-                ? asset.serialNumber
-                : JSON.stringify({
-                    serialNumber: asset.serialNumber,
-                    category: asset.category || "Uncategorized",
-                  })
-            }
-            onEdit={() => handleEdit(asset)}
-            onDelete={() => handleDelete(asset._id)}
-            onQrClick={() =>
-              setPreviewQR(
-                asset.category === "Unit"
-                  ? asset.serialNumber
-                  : JSON.stringify({
-                      serialNumber: asset.serialNumber,
-                      category: asset.category || "Uncategorized",
-                    }),
-              )
-            }
-          />
+      {/* ── Stats row ── */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        {[
+          { label: "Total Assets", value: filteredAssets.length, color: "" },
+          {
+            label: "Good Condition",
+            value: goodCount,
+            color: "text-emerald-600",
+          },
+          {
+            label: "For Maintenance",
+            value: maintCount,
+            color: "text-orange-500",
+          },
+          {
+            label: "For Disposal",
+            value: dispCount,
+            color: "text-orange-500",
+          },
+          {
+            label: "Total Value",
+            value: `₱${totalCost.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
+            color: "text-blue-600",
+          },
+        ].map((s) => (
+          <div
+            key={s.label}
+            className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 px-4 py-3"
+          >
+            <p className="text-[11px] uppercase tracking-wide text-slate-400 mb-1">
+              {s.label}
+            </p>
+            <p className={`text-2xl font-bold ${s.color || "dark:text-white"}`}>
+              {s.value}
+            </p>
+          </div>
         ))}
-
-        {/* Register New Asset */}
-
-        <Link
-          to="/assets/add"
-          className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-blue-500 transition-all flex flex-col items-center justify-center p-8 gap-4 min-h-[280px]"
-        >
-          <div className="w-16 h-16 rounded-full bg-white dark:bg-slate-800 shadow-sm border flex items-center justify-center text-slate-400">
-            <span className="material-icons-round text-3xl">add</span>
-          </div>
-          <div className="text-center">
-            <p className="font-bold text-slate-600 dark:text-slate-300">
-              Register New Asset
-            </p>
-            <p className="text-sm text-slate-400">
-              Click here to add to inventory
-            </p>
-          </div>
-        </Link>
       </div>
 
-      {/* QR Preview Modal */}
+      {/* ── CARD VIEW ── */}
+      {view === "card" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          {filteredAssets.map((asset) => {
+            const icon =
+              categoryIcons[asset.category] || categoryIcons["Uncategorized"];
+            return (
+              <div
+                key={asset._id}
+                className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-amber-300 transition-all"
+              >
+                <div className="p-5">
+                  {/* Top row */}
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center text-2xl overflow-hidden">
+                        {icon.startsWith("/") || icon.startsWith("http") ? (
+                          <img
+                            src={icon}
+                            alt={asset.category}
+                            className="w-full h-full object-contain"
+                          />
+                        ) : (
+                          icon
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm dark:text-white leading-tight">
+                          {asset.assetName}
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {asset.category || "Uncategorized"}
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${statusColors[asset.status] || statusColors.Unknown}`}
+                    >
+                      {asset.status || "Unknown"}
+                    </span>
+                  </div>
+
+                  {/* Fields */}
+                  <div className="grid grid-cols-2 gap-y-3 text-sm mb-4">
+                    {[
+                      ["Serial #", asset.serialNumber || "-"],
+                      ["Issued To", asset.issuedTo || "-"],
+                      [
+                        "Purchase Date",
+                        asset.purchaseDate
+                          ? new Date(asset.purchaseDate).toLocaleDateString()
+                          : "-",
+                      ],
+                      [
+                        "Issue Date",
+                        asset.issuedDate
+                          ? new Date(asset.issuedDate).toLocaleDateString()
+                          : "-",
+                      ],
+                    ].map(([label, val]) => (
+                      <div key={label}>
+                        <p className="text-[10px] uppercase font-bold text-slate-400">
+                          {label}
+                        </p>
+                        <p className="text-slate-700 dark:text-slate-200 text-xs">
+                          {val}
+                        </p>
+                      </div>
+                    ))}
+                    <div>
+                      <p className="text-[10px] uppercase font-bold text-slate-400">
+                        Cost
+                      </p>
+                      <p className="text-emerald-600 font-bold text-xs">
+                        {asset.assetCost
+                          ? `₱${Number(asset.assetCost).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`
+                          : "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase font-bold text-slate-400">
+                        Life Span
+                      </p>
+                      <p className="text-xs">
+                        {asset.lifeSpan ? `${asset.lifeSpan} mo.` : "-"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-700 pt-3">
+                    <div
+                      className="cursor-pointer hover:opacity-75 transition"
+                      onClick={() => setPreviewQR(qrValue(asset))}
+                    >
+                      <QRCodeCanvas
+                        value={qrValue(asset)}
+                        size={36}
+                        bgColor="white"
+                        fgColor="#000"
+                        level="H"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEdit(asset)}
+                        className="px-3 py-1.5 text-xs bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(asset._id)}
+                        className="px-3 py-1.5  text-xs bg-red1 text-white rounded-lg hover:bg-red-200 transition"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Add card */}
+          <Link
+            to="/assets/add"
+            className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-blue-500 transition-all flex flex-col items-center justify-center p-8 gap-4 min-h-[260px]"
+          >
+            <div className="w-14 h-14 rounded-full bg-white dark:bg-slate-800 shadow-sm border flex items-center justify-center text-slate-400">
+              <span className="material-icons-round text-3xl">add</span>
+            </div>
+            <div className="text-center">
+              <p className="font-bold text-slate-600 dark:text-slate-300">
+                Register New Asset
+              </p>
+              <p className="text-sm text-slate-400">
+                Click here to add to inventory
+              </p>
+            </div>
+          </Link>
+
+          {filteredAssets.length === 0 && (
+            <div className="col-span-full text-center py-16 text-slate-400">
+              No assets match your filters.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── TABLE VIEW ── */}
+      {view === "table" && (
+        <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-[12.5px] border-collapse">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700">
+                  {[
+                    "Asset Name",
+                    "Serial #",
+                    "Category",
+                    "Status",
+                    "Issued To",
+                    "Purchase Date",
+                    "Cost",
+                    "Life Span",
+                    "Actions",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-[10.5px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                {paginated.map((asset, idx) => (
+                  <tr
+                    key={asset._id}
+                    className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition ${idx % 2 === 1 ? "bg-slate-50/50 dark:bg-slate-800/50" : ""}`}
+                  >
+                    <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white min-w-[180px]">
+                      {asset.assetName}
+                    </td>
+                    <td className="px-4 py-3 text-slate-500">
+                      {asset.serialNumber || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                      {asset.category || "-"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={` inline-flex whitespace-nowrap  px-2.5 py-1 text-[10.5px] font-semibold rounded-full ${statusColors[asset.status] || statusColors.Unknown}`}
+                      >
+                        {asset.status || "Unknown"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                      {asset.issuedTo || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                      {asset.purchaseDate
+                        ? new Date(asset.purchaseDate).toLocaleDateString(
+                            "en-PH",
+                          )
+                        : "-"}
+                    </td>
+                    <td className="px-4 py-3 font-semibold text-emerald-600">
+                      {asset.assetCost
+                        ? `₱${Number(asset.assetCost).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`
+                        : "-"}
+                    </td>
+                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                      {asset.lifeSpan ? `${asset.lifeSpan} mo.` : "-"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => setPreviewQR(qrValue(asset))}
+                          className="p-1.5 text-slate-400 hover:text-blue-600 transition rounded"
+                          title="View QR"
+                        >
+                          <span className="material-icons-round text-[16px]">
+                            qr_code
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => handleEdit(asset)}
+                          className="p-1.5 text-slate-400 hover:text-blue-600 transition rounded"
+                          title="Edit"
+                        >
+                          <span className="material-icons-round text-[16px]">
+                            edit
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => handleDelete(asset._id)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 transition rounded"
+                          title="Delete"
+                        >
+                          <span className="material-icons-round text-[16px]">
+                            delete
+                          </span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filteredAssets.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={9}
+                      className="text-center py-12 text-slate-400"
+                    >
+                      No assets match your filters.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700">
+            <p className="text-xs text-slate-500">
+              {filteredAssets.length === 0
+                ? "No entries"
+                : `Showing ${(currentPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(currentPage * ITEMS_PER_PAGE, filteredAssets.length)} of ${filteredAssets.length} entries`}
+            </p>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 h-7 text-xs border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100"
+              >
+                Previous
+              </button>
+              {getPageNumbers().map((page, i) =>
+                page === "..." ? (
+                  <span
+                    key={`e-${i}`}
+                    className="px-2 flex items-center text-xs text-slate-400"
+                  >
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 h-7 text-xs border rounded transition ${
+                      currentPage === page
+                        ? "bg-blue-700 text-white border-blue-700"
+                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ),
+              )}
+              <button
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="px-3 h-7 text-xs border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── QR Preview Modal ── */}
       {previewQR && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div
             ref={modalRef}
-            className="relative bg-white p-6 rounded-lg flex flex-col items-center gap-4"
+            className="relative bg-white dark:bg-slate-800 p-8 rounded-xl flex flex-col items-center gap-4 shadow-xl"
           >
             <button
-              className="absolute top-0 right-2 text-slate-500 hover:text-slate-800 dark:hover:text-white font-bold text-2xl"
+              className="absolute top-3 right-4 text-slate-400 hover:text-slate-800 dark:hover:text-white font-bold text-2xl"
               onClick={() => setPreviewQR(null)}
             >
               ×
             </button>
-
             <QRCodeCanvas
               value={previewQR}
               size={200}
@@ -282,328 +670,129 @@ const AssetInventory = () => {
               fgColor="#000"
               level="H"
             />
-
-            <p className="mt-2 text-center text-black text-sm font-medium">
-              <p className="mt-2 text-center text-black text-sm font-medium">
-                {(() => {
-                  try {
-                    const parsed = JSON.parse(previewQR);
-                    return ` ${parsed.serialNumber}  (${parsed.category})`;
-                  } catch {
-                    return previewQR; // if it's just a plain serial (Units)
-                  }
-                })()}
-              </p>
+            <p className="text-sm text-slate-600 dark:text-slate-300 text-center">
+              {(() => {
+                try {
+                  const p = JSON.parse(previewQR);
+                  return `${p.serialNumber} · ${p.category}`;
+                } catch {
+                  return previewQR;
+                }
+              })()}
             </p>
           </div>
         </div>
       )}
+
+      {/* ── Edit Modal ── */}
       {editingAsset && (
-        <div className="fixed inset-0 z-50 flex items-center  justify-center bg-slate-900/20 backdrop-blur-sm p-6">
-          <div className="w-full max-w-xl bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div
+            ref={editModalRef}
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-700"
+          >
             {/* Header */}
-            <header className="px-8 py-6 border-b border-slate-200 flex justify-between items-center">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-700">
               <div>
-                <h2 className="text-2xl font-bold text-slate-900">
+                <h3 className="text-lg font-bold dark:text-white">
                   Edit Asset
-                </h2>
-                <p className="text-sm text-slate-500 mt-1">
-                  Update technical specifications and financial details.
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Update the details for this asset
                 </p>
               </div>
-
               <button
                 onClick={() => setEditingAsset(null)}
-                className="text-slate-400 hover:text-slate-600"
+                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition"
               >
-                ✕
+                <span className="material-icons-round text-[20px]">close</span>
               </button>
-            </header>
+            </div>
 
-            {/* Form */}
-            <div className="px-8 py-8 space-y-6 text-xs">
-              {/* Asset Name + Serial */}
-              <div className="grid grid-cols-2 md:grid-cols-2 gap-6">
-                <div className="space-y-1">
-                  <label className="text-sm font-semibold text-slate-800">
-                    Asset Name
+            {/* Body */}
+            <div className="px-6 py-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+                { label: "Asset Name", key: "assetName" },
+                // { label: "Serial Number", key: "serialNumber" },
+                { label: "Description", key: "description", full: true },
+                { label: "Issued To", key: "issuedTo" },
+                {
+                  label: "Life Span (months)",
+                  key: "lifeSpan",
+                  type: "number",
+                },
+                { label: "Asset Cost (₱)", key: "assetCost", type: "number" },
+                { label: "Purchase Date", key: "purchaseDate", type: "date" },
+                { label: "Issued Date", key: "issuedDate", type: "date" },
+              ].map(({ label, key, type = "text", full }) => (
+                <div key={key} className={full ? "sm:col-span-2" : ""}>
+                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                    {label}
                   </label>
                   <input
-                    className="w-full rounded-lg border-slate-200 text-sm py-2.5"
-                    value={editingAsset.assetName || ""}
-                    onChange={(e) =>
-                      setEditingAsset({
-                        ...editingAsset,
-                        assetName: e.target.value,
-                      })
+                    type={type}
+                    value={
+                      type === "date" && editingAsset[key]
+                        ? new Date(editingAsset[key])
+                            .toISOString()
+                            .split("T")[0]
+                        : editingAsset[key] || ""
                     }
+                    onChange={(e) =>
+                      setEditingAsset((prev) => ({
+                        ...prev,
+                        [key]: e.target.value,
+                      }))
+                    }
+                    className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
+              ))}
 
-                <div className="space-y-1">
-                  <label className="text-sm font-semibold text-slate-800">
-                    Serial Number
-                  </label>
-                  <input
-                    className="w-full p-2 rounded-lg border-slate-200 bg-slate-50 text-sm py-2.5"
-                    value={editingAsset.serialNumber || ""}
-                    onChange={(e) =>
-                      setEditingAsset({
-                        ...editingAsset,
-                        serialNumber: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-              </div>
-
-              {/* Issued To + Status */}
-              <div className="grid grid-cols-2 md:grid-cols-2 gap-6">
-                <div className="space-y-1">
-                  <label className="text-sm font-semibold text-slate-800">
-                    Issued To
-                  </label>
-                  <input
-                    className="w-full rounded-lg border-slate-200 text-sm py-2.5"
-                    value={editingAsset.issuedTo || ""}
-                    onChange={(e) =>
-                      setEditingAsset({
-                        ...editingAsset,
-                        issuedTo: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-sm font-semibold text-slate-800">
-                    Condition
-                  </label>
-
-                  <select
-                    className="w-full rounded-lg border-slate-200 text-sm py-2.5"
-                    value={editingAsset.status || ""}
-                    onChange={(e) =>
-                      setEditingAsset({
-                        ...editingAsset,
-                        status: e.target.value,
-                      })
-                    }
-                  >
-                    <option>Good Condition</option>
-                    <option>For Maintenance</option>
-                    <option>For Disposal</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Price + Lifespan */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t pt-6">
-                <div className="space-y-1">
-                  <label className="text-sm font-semibold text-slate-800">
-                    Price
-                  </label>
-
-                  <div className="relative">
-                    {/* <span className="absolute left-3 top-2.5 text-slate-400 text-sm">
-                      ₱
-                    </span> */}
-
-                    <input
-                      type="number"
-                      className="w-full rounded-lg border-slate-200 p-2 text-sm py-2.5"
-                      value={editingAsset.assetCost || ""}
-                      onChange={(e) =>
-                        setEditingAsset({
-                          ...editingAsset,
-                          assetCost: e.target.value,
-                        })
-                      }
-                    />
-                    <span className="absolute right-6 top-2.5 text-xs text-slate-400 uppercase">
-                      Php
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-sm font-semibold text-slate-800">
-                    Life Span
-                  </label>
-
-                  <div className="relative">
-                    <input
-                      type="number"
-                      className="w-full rounded-lg border-slate-200 pr-16 text-sm py-2.5"
-                      value={editingAsset.lifeSpan || ""}
-                      onChange={(e) =>
-                        setEditingAsset({
-                          ...editingAsset,
-                          lifeSpan: e.target.value,
-                        })
-                      }
-                    />
-
-                    <span className="absolute right-3 top-2.5 text-xs text-slate-400 uppercase">
-                      Months
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex justify-end gap-4 pt-6">
-                <button
-                  onClick={() => setEditingAsset(null)}
-                  className="px-5 py-2.5 text-sm font-semibold bg-gray-200 text-slate-600 hover:bg-slate-100 rounded-lg"
+              {/* Status */}
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Status
+                </label>
+                <select
+                  value={editingAsset.status || ""}
+                  onChange={(e) =>
+                    setEditingAsset((prev) => ({
+                      ...prev,
+                      status: e.target.value,
+                    }))
+                  }
+                  className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  Cancel
-                </button>
-
-                <button
-                  onClick={updateAsset}
-                  className="px-8 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm"
-                >
-                  Save Changes
-                </button>
+                  <option value="">Select status</option>
+                  <option>Good Condition</option>
+                  <option>For Maintenance</option>
+                  <option>For Disposal</option>
+                  <option>Pending</option>
+                </select>
               </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 rounded-b-xl">
+              <button
+                onClick={() => setEditingAsset(null)}
+                className="px-5 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-300 text-sm font-semibold hover:bg-white dark:hover:bg-slate-800 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={updateAsset}
+                className="px-5 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-sm font-semibold transition flex items-center gap-1.5"
+              >
+                <span className="material-icons-round text-[16px]">save</span>
+                Save Changes
+              </button>
             </div>
           </div>
         </div>
       )}
     </main>
-  );
-};
-
-const AssetCard = ({
-  icon,
-  title,
-  category,
-  status,
-  statusColor,
-  description,
-  serial,
-  issued,
-  issueDate,
-  purchaseDate,
-  cost,
-  life,
-  qrValue,
-  onEdit,
-  onDelete,
-  onQrClick,
-}) => {
-  const color = statusColors[status] || "gray"; // ✅ move it here
-  return (
-    <div className="bg-white overflow-auto hover:border-amber-400 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all overflow-">
-      <div className="p-6">
-        <div className="justify-end flex">
-          <span
-            className={`px-1.5 py-1 text-[10px]   font-semibold  rounded-full ${statusColors[status] || statusColors.Unknown}`}
-          >
-            {status}
-          </span>
-        </div>
-
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12  dark:bg-slate-700 rounded-2xl flex items-center justify-center text-3xl overflow-hidden">
-              {icon.startsWith("http") || icon.startsWith("/") ? (
-                <img
-                  src={icon}
-                  alt={category}
-                  className="w-full h-full object-contain"
-                />
-              ) : (
-                icon
-              )}
-            </div>
-
-            <div>
-              <h3 className="font-bold text-[10px] md:text-sm dark:text-white mt-2">
-                {title}
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {category}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-y-3 mb-4 text-sm">
-          <div>
-            <p className="text-[10px] uppercase font-bold text-slate-400">
-              Serial Number
-            </p>
-            <p>{serial}</p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase font-bold text-slate-400">
-              Issued To
-            </p>
-            <p>{issued}</p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase font-bold text-slate-400">
-              Purchased Date
-            </p>
-            <p>
-              {purchaseDate ? new Date(purchaseDate).toLocaleDateString() : "-"}
-            </p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase font-bold text-slate-400">
-              Issue Date
-            </p>
-            <p>{issueDate ? new Date(issueDate).toLocaleDateString() : "-"}</p>
-          </div>
-
-          <div>
-            <p className="text-[10px] uppercase font-bold text-slate-400">
-              Cost
-            </p>
-            <p className="font-bold text-green-500">{cost}</p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase font-bold text-slate-400">
-              Life Span
-            </p>
-            <p>{life} month(s)</p>
-          </div>
-        </div>
-
-        {/* QR Code */}
-        <div className="flex justify-between border-t mt-4 items-center">
-          <div
-            className="flex justify-center mt-2 cursor-pointer"
-            onClick={onQrClick}
-          >
-            <QRCodeCanvas
-              value={qrValue}
-              size={40}
-              bgColor="white"
-              fgColor="#000"
-              level="H"
-            />
-          </div>
-
-          <div className="flex  gap-2 mt-2 pt-0">
-            <button
-              className="px-3 py-1.5 text-xs bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition"
-              onClick={onEdit}
-            >
-              Edit
-            </button>
-            <button
-              className="px-3 py-1.5 text-xs bg-red1 text-white rounded-lg hover:bg-red1-200 dark:hover:bg-red-600 transition"
-              onClick={onDelete}
-            >
-              Delete
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 };
 

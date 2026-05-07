@@ -32,9 +32,8 @@ const AssetDepreciationDashboard = () => {
   const [purchasedYear, setPurchasedYear] = useState("ALL");
   const [showCurrentFYOnly, setShowCurrentFYOnly] = useState(false);
 
-  // FIX 1: stickyCols widths must match what you set on every cell via style.
-  // These are the px widths of the first 7 frozen columns.
-  const stickyCols = [170, 120, 85, 65, 120, 120, 20];
+  // 6 frozen columns only (End NBV is no longer frozen)
+  const stickyCols = [170, 120, 85, 65, 120, 120];
   const leftOffsets = stickyCols.reduce((acc, w, i) => {
     acc.push(i === 0 ? 0 : acc[i - 1] + stickyCols[i - 1]);
     return acc;
@@ -161,13 +160,13 @@ const AssetDepreciationDashboard = () => {
   const exportToExcel = async () => {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Depreciation");
-    sheet.views = [{ state: "frozen", xSplit: 7, ySplit: 2 }];
+    sheet.views = [{ state: "frozen", xSplit: 6, ySplit: 2 }];
 
     const headerLabels = showFullLife
       ? timeline.map((t) => t.label)
       : headerMonths.map((m) => months[m]);
 
-    const totalColumns = 7 + headerLabels.length + 1;
+    const totalColumns = 6 + headerLabels.length + 2; // +2 for Acc. Depr and End NBV
 
     const titleRow = sheet.addRow(["Asset Depreciation Report"]);
     titleRow.font = { bold: true, size: 16 };
@@ -204,8 +203,8 @@ const AssetDepreciationDashboard = () => {
       8,
       20,
       18,
-      18,
       ...Array(headerLabels.length).fill(12),
+      18,
       18,
     ];
     sheet.columns.forEach((col, i) => {
@@ -219,9 +218,9 @@ const AssetDepreciationDashboard = () => {
       "Life",
       "Cost",
       "Beg. NBV",
-      "End NBV",
       ...headerLabels,
       "Acc. Depr",
+      "End NBV",
     ];
     const headerRow = sheet.addRow(headers);
     headerRow.font = { bold: true };
@@ -237,15 +236,19 @@ const AssetDepreciationDashboard = () => {
         asset.lifeSpan,
         asset.assetCost,
         beginningNBV,
-        endingNBV,
         ...deps,
         periodTotal,
+        endingNBV,
       ]);
       row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
         if (
-          [5, 6, 7, ...deps.map((_, i) => 8 + i), totalColumns].includes(
-            colNumber,
-          )
+          [
+            5,
+            6,
+            ...deps.map((_, i) => 7 + i),
+            totalColumns - 1,
+            totalColumns,
+          ].includes(colNumber)
         ) {
           cell.numFmt = "#,##0.00";
           cell.alignment = { horizontal: "right" };
@@ -260,9 +263,9 @@ const AssetDepreciationDashboard = () => {
       "",
       totalCost,
       totalBegNBV,
-      totalEndNBV,
       ...monthlyTotals,
       totalPeriodDep,
+      totalEndNBV,
     ]);
     totalsRow.font = { bold: true };
     totalsRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
@@ -298,7 +301,7 @@ const AssetDepreciationDashboard = () => {
     );
 
   // ── Shared style helpers ──────────────────────────────────────────────────
-  // The last frozen column (index 6, End NBV) gets a right border as a visual
+  // The last frozen column (index 5, Beg. NBV) gets a right border as a visual
   // divider between the frozen zone and the scrollable columns.
   const DIVIDER = "2px solid #cbd5e1";
 
@@ -306,7 +309,7 @@ const AssetDepreciationDashboard = () => {
     left: leftOffsets[i],
     width: stickyCols[i],
     minWidth: stickyCols[i],
-    ...(i === 6 ? { borderRight: DIVIDER } : {}),
+    ...(i === 5 ? { borderRight: DIVIDER } : {}),
     ...extra,
   });
 
@@ -314,7 +317,7 @@ const AssetDepreciationDashboard = () => {
     left: leftOffsets[i],
     width: stickyCols[i],
     minWidth: stickyCols[i],
-    ...(i === 6 ? { borderRight: DIVIDER } : {}),
+    ...(i === 5 ? { borderRight: DIVIDER } : {}),
     ...extra,
   });
 
@@ -455,21 +458,14 @@ const AssetDepreciationDashboard = () => {
 
           {/* Table */}
           <div className="bg-white dark:bg-slate-800 w-full rounded-xl border dark:border-slate-700 overflow-hidden">
-            {/*
-                FIX 2: overflow-x: auto lives here on the wrapper div (already correct).
-                FIX 3: The <table> no longer has w-48 or the broken "table-" class.
-                      Instead it uses border-collapse and a large enough minWidth so
-                      horizontal scrolling actually triggers. The frozen 7 cols occupy
-                      `frozenWidth` px; the rest is for the dynamic month columns.
-              */}
             <div className="overflow-x-auto">
               <table
                 className="text-xs border-collapse"
-                style={{ minWidth: `${frozenWidth + colCount * 90 + 160}px` }}
+                style={{ minWidth: `${frozenWidth + colCount * 90 + 280}px` }}
               >
                 <thead>
                   <tr className="bg-slate-100 dark:bg-slate-700 text-xs uppercase tracking-wider">
-                    {/* ── Frozen columns ─────────────────────────── */}
+                    {/* ── Frozen columns (1–6) ─────────────────────────── */}
                     <th
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest"
                       style={stickyTh(0)}
@@ -505,18 +501,12 @@ const AssetDepreciationDashboard = () => {
                     >
                       Cost
                     </th>
+                    {/* Col 6 (index 5) — last frozen, gets divider */}
                     <th
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-right text-[10px] font-bold text-on-surface-variant uppercase tracking-widest"
                       style={stickyTh(5)}
                     >
                       Beg. NBV
-                    </th>
-                    {/* FIX 4: Last frozen column gets the visual right-border divider */}
-                    <th
-                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-right text-[10px] font-bold text-on-surface-variant uppercase tracking-widest"
-                      style={stickyTh(6)}
-                    >
-                      End NBV
                     </th>
 
                     {/* ── Scrollable month columns ────────────────── */}
@@ -530,11 +520,20 @@ const AssetDepreciationDashboard = () => {
                       </th>
                     ))}
 
+                    {/* Accumulated Depreciation */}
                     <th
                       className="px-4 py-3 text-right text-[11px] font-bold text-on-surface-variant uppercase tracking-widest"
                       style={{ minWidth: 120 }}
                     >
                       Accumulated Depr.
+                    </th>
+
+                    {/* End NBV — now scrollable (not frozen) */}
+                    <th
+                      className="px-4 py-3 text-right text-[10px] font-bold text-on-surface-variant uppercase tracking-widest bg-slate-100 dark:bg-slate-700"
+                      style={{ minWidth: 120 }}
+                    >
+                      End NBV
                     </th>
                   </tr>
                 </thead>
@@ -546,7 +545,7 @@ const AssetDepreciationDashboard = () => {
                         key={asset._id}
                         className="hover:bg-slate-50 dark:hover:bg-slate-700/40"
                       >
-                        {/* ── Frozen cells ──────────────────────────── */}
+                        {/* ── Frozen cells (1–6) ──────────────────────────── */}
                         <td
                           className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 text-[10px] font-medium"
                           style={stickyTd(0)}
@@ -581,18 +580,12 @@ const AssetDepreciationDashboard = () => {
                         >
                           {formatMoney(asset.assetCost)}
                         </td>
+                        {/* Col 6 (index 5) — last frozen, gets divider */}
                         <td
                           className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 text-right text-indigo-600 font-semibold text-[10px]"
                           style={stickyTd(5)}
                         >
                           {formatMoney(beginningNBV)}
-                        </td>
-                        {/* FIX 4: divider on last frozen cell */}
-                        <td
-                          className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 text-right text-blue-600 font-semibold text-[10px]"
-                          style={stickyTd(6)}
-                        >
-                          {formatMoney(endingNBV)}
                         </td>
 
                         {/* ── Scrollable dep cells ──────────────────── */}
@@ -604,8 +597,15 @@ const AssetDepreciationDashboard = () => {
                             {d > 0 ? formatMoney(d) : "-"}
                           </td>
                         ))}
+
+                        {/* Accumulated Depreciation */}
                         <td className="px-4 py-3 text-right font-bold text-green-500 text-[10px]">
                           {formatMoney(periodTotal)}
+                        </td>
+
+                        {/* End NBV — now scrollable */}
+                        <td className="px-4 py-3 text-right text-blue-600 font-semibold text-[10px]">
+                          {formatMoney(endingNBV)}
                         </td>
                       </tr>
                     ),
@@ -614,11 +614,7 @@ const AssetDepreciationDashboard = () => {
 
                 <tfoot>
                   <tr className="bg-slate-100 dark:bg-slate-700 font-bold border-t-2 border-slate-300 dark:border-slate-500">
-                    {/*
-                        FIX 5: Replace the single colSpan={4} cell with 4 individual cells.
-                        colSpan breaks sticky positioning — each cell must have its own
-                        explicit left offset and width for the browser to honour position:sticky.
-                      */}
+                    {/* Frozen footer cells (1–6) */}
                     <td
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-xs font-extrabold text-slate-700 dark:text-slate-200 uppercase tracking-wider"
                       style={stickyTd(0)}
@@ -637,7 +633,6 @@ const AssetDepreciationDashboard = () => {
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3"
                       style={stickyTd(3)}
                     />
-
                     {/* Total Cost */}
                     <td
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-right text-[10px] font-extrabold text-slate-800 dark:text-slate-100"
@@ -645,21 +640,12 @@ const AssetDepreciationDashboard = () => {
                     >
                       {formatMoney(totalCost)}
                     </td>
-
-                    {/* Total Beg. NBV */}
+                    {/* Total Beg. NBV — last frozen, gets divider */}
                     <td
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-right text-[10px] font-extrabold text-indigo-700 dark:text-indigo-300"
                       style={stickyTd(5)}
                     >
                       {formatMoney(totalBegNBV)}
-                    </td>
-
-                    {/* Total End NBV — last frozen cell, gets divider */}
-                    <td
-                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-right text-xs font-extrabold text-blue-700 dark:text-blue-300"
-                      style={stickyTd(6)}
-                    >
-                      {formatMoney(totalEndNBV)}
                     </td>
 
                     {/* Per-month totals */}
@@ -675,6 +661,11 @@ const AssetDepreciationDashboard = () => {
                     {/* Total Accumulated Depr. */}
                     <td className="px-4 py-3 text-right text-xs font-extrabold text-green-600 dark:text-green-400">
                       {formatMoney(totalPeriodDep)}
+                    </td>
+
+                    {/* Total End NBV — now scrollable */}
+                    <td className="px-4 py-3 text-right text-xs font-extrabold text-blue-700 dark:text-blue-300">
+                      {formatMoney(totalEndNBV)}
                     </td>
                   </tr>
                 </tfoot>

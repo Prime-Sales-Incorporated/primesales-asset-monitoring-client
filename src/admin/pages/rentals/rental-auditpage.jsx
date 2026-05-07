@@ -355,7 +355,7 @@ export default function PrimeTrackAudit() {
                         setDeleteAuditId(audit._id);
                         setConfirmDeleteOpen(true);
                       }}
-                      className="delete-btn  p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md focus:outline-none focus:ring-2 focus:ring-red-200 transition-all"
+                      className="delete-btn  p-2 bg-red-400 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md focus:outline-none focus:ring-2 focus:ring-red-200 transition-all"
                       title="Delete audit"
                     >
                       <span className="material-symbols-outlined">delete</span>

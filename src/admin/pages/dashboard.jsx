@@ -173,9 +173,7 @@ const MainDashboard = () => {
     <main className=" min-h-screen bg-[#f7fafc]">
       <div className="p-8 max-w-[1600px] mx-auto">
         {/* PAGE TITLE */}
-        <h2 className="text-2xl font-semibold text-[#00174b] mb-6">
-          Dashboard
-        </h2>
+        <h2 className="text-2xl font-bold dark:text-white mb-6">Dashboard</h2>
 
         {/* ================= KPI GRID ================= */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -228,7 +226,7 @@ const MainDashboard = () => {
                 </span>
               </div>
               <span className="text-[10px] font-bold text-slate-400 uppercase">
-                Monthly
+                purchased within 15 days
               </span>
             </div>
 

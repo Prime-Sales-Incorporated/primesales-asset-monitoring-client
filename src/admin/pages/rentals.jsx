@@ -38,7 +38,9 @@ export default function RentalsDashboard() {
         }
 
         // Filter only Units
-        const forkliftsOnly = data.filter((asset) => asset.category === "Unit");
+        const forkliftsOnly = data.filter(
+          (asset) => asset.category === "Rental Eqpt",
+        );
 
         setUnits(forkliftsOnly);
       } catch (error) {

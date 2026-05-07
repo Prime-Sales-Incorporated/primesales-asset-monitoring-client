@@ -9,7 +9,7 @@ export function ConfirmDeleteModal({ open, onClose, onConfirm, message }) {
         <div className="flex justify-center gap-4">
           <button
             onClick={onConfirm}
-            className="bg-red-500 text-white px-4 py-2 rounded-lg font-bold"
+            className="bg-red1 text-white px-4 py-2 rounded-lg font-bold"
           >
             Yes, Delete
           </button>
