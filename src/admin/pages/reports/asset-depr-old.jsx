@@ -17,33 +17,6 @@ import {
   quarterMap,
 } from "../../helpers/depreciationHelper";
 
-// ─── Grouping helper ────────────────────────────────────────────────────────
-// Assets with the same name, purchaseDate, and assetCost are collapsed into one
-// "grouped" entry. Depreciation / NBV values are scaled by qty.
-const groupAssets = (assets) => {
-  const map = new Map();
-
-  assets.forEach((asset) => {
-    // Normalise the key: trim name, strip time from date, round cost to 2dp
-    const name = (asset.assetName || "").trim();
-    const date = asset.purchaseDate
-      ? new Date(asset.purchaseDate).toISOString().slice(0, 10)
-      : "";
-    const cost = Number(asset.assetCost || 0).toFixed(2);
-    const key = `${name}||${date}||${cost}`;
-
-    if (map.has(key)) {
-      map.get(key).qty += 1;
-    } else {
-      // Keep a single representative asset object; qty starts at 1
-      map.set(key, { ...asset, qty: 1 });
-    }
-  });
-
-  return Array.from(map.values());
-};
-// ────────────────────────────────────────────────────────────────────────────
-
 const AssetDepreciationDashboard = () => {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -59,8 +32,8 @@ const AssetDepreciationDashboard = () => {
   const [showCurrentFYOnly, setShowCurrentFYOnly] = useState(false);
   const [hideZeroDepreciation, setHideZeroDepreciation] = useState(false);
 
-  // 7 frozen columns (added Qty)
-  const stickyCols = [170, 120, 85, 45, 65, 120, 120];
+  // 6 frozen columns
+  const stickyCols = [170, 120, 85, 65, 120, 120];
   const leftOffsets = stickyCols.reduce((acc, w, i) => {
     acc.push(i === 0 ? 0 : acc[i - 1] + stickyCols[i - 1]);
     return acc;
@@ -73,6 +46,7 @@ const AssetDepreciationDashboard = () => {
   useEffect(() => {
     const fetchAssets = async () => {
       try {
+        // Fetch ALL assets for depreciation math — high limit
         const res = await fetch(
           `${API_BASE_URL}/api/asset/get/all?limit=10000`,
           {
@@ -83,6 +57,9 @@ const AssetDepreciationDashboard = () => {
           },
         );
         const data = await res.json();
+
+        // ✅ Unwrap: backend now returns { assets, total, ... }
+        // Fallback to data itself in case backend still returns plain array
         const list = Array.isArray(data) ? data : (data.assets ?? []);
 
         setAssets(list);
@@ -98,7 +75,7 @@ const AssetDepreciationDashboard = () => {
         setMaxFiscalYear(lastYear);
       } catch (err) {
         console.error(err);
-        setAssets([]);
+        setAssets([]); // ✅ Never leave assets as undefined/object
       } finally {
         setLoading(false);
       }
@@ -114,7 +91,6 @@ const AssetDepreciationDashboard = () => {
   const fiscalStart = new Date(selectedFiscalYear, 5, 1);
   const fiscalEnd = new Date(selectedFiscalYear + 1, 4, 31);
 
-  // 1. Filter raw assets first
   let filteredAssets = assets.filter((a) => {
     const categoryMatch =
       selectedCategory === "ALL" || a.category === selectedCategory;
@@ -129,38 +105,31 @@ const AssetDepreciationDashboard = () => {
     return categoryMatch && inFiscalYear;
   });
 
-  // 2. Group into unique entries with qty
-  let groupedAssets = groupAssets(filteredAssets);
-
   if (dateSortOrder) {
-    groupedAssets.sort((a, b) => {
+    filteredAssets.sort((a, b) => {
       const dateA = a.purchaseDate ? new Date(a.purchaseDate) : new Date(0);
       const dateB = b.purchaseDate ? new Date(b.purchaseDate) : new Date(0);
       return dateSortOrder === "asc" ? dateA - dateB : dateB - dateA;
     });
   }
 
-  const timeline = showFullLife ? getCompleteTimeline(groupedAssets) : null;
+  const timeline = showFullLife ? getCompleteTimeline(filteredAssets) : null;
   const headerMonths = showFullLife
     ? []
     : selectedQuarter === "ALL"
       ? fiscalMonths
       : quarterMap[selectedQuarter];
 
-  // 3. Build row data — multiply all monetary values by qty
-  const rowData = groupedAssets.map((asset) => {
-    const { qty = 1 } = asset;
+  const rowData = filteredAssets.map((asset) => {
     const schedule = getMonthlySchedule(asset);
-
-    // Per-unit values
-    const unitBeginningNBV = getBeginningNBV(asset, selectedFiscalYear);
-    const unitEndingNBV = getNBVForPeriod(
+    const beginningNBV = getBeginningNBV(asset, selectedFiscalYear);
+    const endingNBV = getNBVForPeriod(
       asset,
       selectedFiscalYear,
       selectedQuarter === "ALL" ? "ALL" : Number(selectedQuarter),
     );
 
-    const unitDeps = showFullLife
+    const deps = showFullLife
       ? timeline.map((t) => {
           const e = schedule.find(
             (s) => s.year === t.year && s.month === t.month,
@@ -175,12 +144,7 @@ const AssetDepreciationDashboard = () => {
             Number(selectedQuarter),
           );
 
-    // Scale by qty
-    const beginningNBV = unitBeginningNBV * qty;
-    const endingNBV = unitEndingNBV * qty;
-    const deps = unitDeps.map((d) => d * qty);
     const periodTotal = deps.reduce((a, b) => a + b, 0);
-
     return { asset, schedule, beginningNBV, endingNBV, deps, periodTotal };
   });
 
@@ -189,7 +153,7 @@ const AssetDepreciationDashboard = () => {
     : rowData;
 
   const totalCost = visibleRowData.reduce(
-    (sum, r) => sum + (Number(r.asset.assetCost) || 0) * (r.asset.qty || 1),
+    (sum, r) => sum + (Number(r.asset.assetCost) || 0),
     0,
   );
   const totalBegNBV = visibleRowData.reduce(
@@ -215,13 +179,13 @@ const AssetDepreciationDashboard = () => {
   const exportToExcel = async () => {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Depreciation");
-    sheet.views = [{ state: "frozen", xSplit: 7, ySplit: 2 }];
+    sheet.views = [{ state: "frozen", xSplit: 6, ySplit: 2 }];
 
     const headerLabels = showFullLife
       ? timeline.map((t) => t.label)
       : headerMonths.map((m) => months[m]);
 
-    const totalColumns = 7 + headerLabels.length + 2;
+    const totalColumns = 6 + headerLabels.length + 2;
 
     const titleRow = sheet.addRow(["Asset Depreciation Report"]);
     titleRow.font = { bold: true, size: 16 };
@@ -255,7 +219,6 @@ const AssetDepreciationDashboard = () => {
       20,
       12,
       12,
-      6, // Qty
       8,
       20,
       18,
@@ -271,9 +234,8 @@ const AssetDepreciationDashboard = () => {
       "Particulars",
       "Class",
       "Date",
-      "Qty",
       "Life",
-      "Total Cost",
+      "Cost",
       "Beg. NBV",
       ...headerLabels,
       "Acc. Depr",
@@ -285,17 +247,14 @@ const AssetDepreciationDashboard = () => {
 
     visibleRowData.forEach(
       ({ asset, deps, beginningNBV, endingNBV, periodTotal }) => {
-        const qty = asset.qty || 1;
-        const totalAssetCost = (Number(asset.assetCost) || 0) * qty;
         const row = sheet.addRow([
           asset.assetName,
           asset.category,
           asset.purchaseDate
             ? new Date(asset.purchaseDate).toLocaleDateString("en-PH")
             : "-",
-          qty,
           asset.lifeSpan,
-          totalAssetCost,
+          asset.assetCost,
           beginningNBV,
           ...deps,
           periodTotal,
@@ -304,9 +263,9 @@ const AssetDepreciationDashboard = () => {
         row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
           if (
             [
+              5,
               6,
-              7,
-              ...deps.map((_, i) => 8 + i),
+              ...deps.map((_, i) => 7 + i),
               totalColumns - 1,
               totalColumns,
             ].includes(colNumber)
@@ -322,7 +281,6 @@ const AssetDepreciationDashboard = () => {
       "TOTAL",
       "",
       "",
-      visibleRowData.reduce((sum, r) => sum + (r.asset.qty || 1), 0),
       "",
       totalCost,
       totalBegNBV,
@@ -332,7 +290,7 @@ const AssetDepreciationDashboard = () => {
     ]);
     totalsRow.font = { bold: true };
     totalsRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-      if (colNumber >= 6) {
+      if (colNumber >= 5) {
         cell.numFmt = "#,##0.00";
         cell.alignment = { horizontal: "right" };
         cell.fill = {
@@ -369,7 +327,7 @@ const AssetDepreciationDashboard = () => {
     left: leftOffsets[i],
     width: stickyCols[i],
     minWidth: stickyCols[i],
-    ...(i === 6 ? { borderRight: DIVIDER } : {}),
+    ...(i === 5 ? { borderRight: DIVIDER } : {}),
     ...extra,
   });
 
@@ -377,7 +335,7 @@ const AssetDepreciationDashboard = () => {
     left: leftOffsets[i],
     width: stickyCols[i],
     minWidth: stickyCols[i],
-    ...(i === 6 ? { borderRight: DIVIDER } : {}),
+    ...(i === 5 ? { borderRight: DIVIDER } : {}),
     ...extra,
   });
 
@@ -515,18 +473,8 @@ const AssetDepreciationDashboard = () => {
                   {formatMoney(totalEndNBV)}
                 </h3>
                 <p className="text-xs text-emerald-600 mt-1">
-                  {visibleRowData.reduce(
-                    (sum, r) => sum + (r.asset.qty || 1),
-                    0,
-                  )}{" "}
-                  asset
-                  {visibleRowData.reduce(
-                    (sum, r) => sum + (r.asset.qty || 1),
-                    0,
-                  ) !== 1
-                    ? "s"
-                    : ""}{" "}
-                  ({visibleRowData.length} unique)
+                  {visibleRowData.length} asset
+                  {visibleRowData.length !== 1 ? "s" : ""}
                 </p>
               </div>
               <div className="w-12 h-12 rounded-full bg-emerald-400/20 flex items-center justify-center text-emerald-600">
@@ -539,15 +487,12 @@ const AssetDepreciationDashboard = () => {
 
           {/* Table */}
           <div className="bg-white dark:bg-slate-800 w-full rounded-xl border dark:border-slate-700 overflow-hidden">
-            <div
-              className="overflow-auto"
-              style={{ maxHeight: "calc(100vh - 250px)" }}
-            >
+            <div className="overflow-x-auto">
               <table
                 className="text-xs border-collapse"
                 style={{ minWidth: `${frozenWidth + colCount * 90 + 280}px` }}
               >
-                <thead className="sticky top-0 z-40">
+                <thead>
                   <tr className="bg-slate-100 dark:bg-slate-700 text-xs uppercase tracking-wider">
                     <th
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest"
@@ -572,28 +517,21 @@ const AssetDepreciationDashboard = () => {
                         {dateSortOrder === "desc" && <FaArrowDown />}
                       </div>
                     </th>
-                    {/* NEW: Qty column */}
-                    <th
-                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-2 py-3 text-center text-[10px] font-bold text-on-surface-variant uppercase tracking-widest"
-                      style={stickyTh(3)}
-                    >
-                      Qty
-                    </th>
                     <th
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest"
-                      style={stickyTh(4)}
+                      style={stickyTh(3)}
                     >
                       Life mos.
                     </th>
                     <th
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest"
-                      style={stickyTh(5)}
+                      style={stickyTh(4)}
                     >
-                      Total Cost
+                      Cost
                     </th>
                     <th
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-right text-[10px] font-bold text-on-surface-variant uppercase tracking-widest"
-                      style={stickyTh(6)}
+                      style={stickyTh(5)}
                     >
                       Beg. NBV
                     </th>
@@ -627,7 +565,7 @@ const AssetDepreciationDashboard = () => {
                   {visibleRowData.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={7 + colCount + 2}
+                        colSpan={6 + colCount + 2}
                         className="text-center py-12 text-slate-400"
                       >
                         No assets match the selected filters.
@@ -641,97 +579,74 @@ const AssetDepreciationDashboard = () => {
                         endingNBV,
                         deps,
                         periodTotal,
-                      }) => {
-                        const qty = asset.qty || 1;
-                        const totalAssetCost =
-                          (Number(asset.assetCost) || 0) * qty;
-                        return (
-                          <tr
-                            key={`${asset._id}-${qty}`}
-                            className="hover:bg-slate-50 dark:hover:bg-slate-700/40"
+                      }) => (
+                        <tr
+                          key={asset._id}
+                          className="hover:bg-slate-50 dark:hover:bg-slate-700/40"
+                        >
+                          <td
+                            className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 text-[10px] font-medium"
+                            style={stickyTd(0)}
                           >
-                            <td
-                              className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 text-[10px] font-medium"
-                              style={stickyTd(0)}
-                            >
-                              {asset.assetName}
-                            </td>
-                            <td
-                              className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 text-slate-500 text-[10px] font-medium"
-                              style={stickyTd(1)}
-                            >
-                              {asset.category}
-                            </td>
-                            <td
-                              className="sticky z-20 bg-white dark:bg-slate-800 text-slate-500 px-4 py-3 text-[10px] font-medium"
-                              style={stickyTd(2)}
-                            >
-                              {asset.purchaseDate
-                                ? new Date(
-                                    asset.purchaseDate,
-                                  ).toLocaleDateString("en-PH")
-                                : "-"}
-                            </td>
-                            {/* Qty cell */}
-                            <td
-                              className="sticky z-20 bg-white dark:bg-slate-800 px-2 py-3 text-center text-[10px] font-bold text-amber-600"
-                              style={stickyTd(3)}
-                            >
-                              {qty > 1 ? (
-                                <span className="inline-flex items-center justify-center bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 font-bold text-[10px]">
-                                  ×{qty}
-                                </span>
-                              ) : (
-                                <span className="text-slate-400">1</span>
-                              )}
-                            </td>
-                            <td
-                              className="sticky z-20 bg-white dark:bg-slate-800 text-slate-500 px-4 py-3 text-[10px] font-medium"
-                              style={stickyTd(4)}
-                            >
-                              {asset.lifeSpan}
-                            </td>
-                            <td
-                              className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 font-medium text-[10px] text-slate-800"
-                              style={stickyTd(5)}
-                            >
-                              {formatMoney(totalAssetCost)}
-                              {qty > 1 && (
-                                <div className="text-[9px] text-slate-400 font-normal">
-                                  {formatMoney(asset.assetCost)} × {qty}
-                                </div>
-                              )}
-                            </td>
-                            <td
-                              className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 text-right text-indigo-600 font-semibold text-[10px]"
-                              style={stickyTd(6)}
-                            >
-                              {formatMoney(beginningNBV)}
-                            </td>
+                            {asset.assetName}
+                          </td>
+                          <td
+                            className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 text-slate-500 text-[10px] font-medium"
+                            style={stickyTd(1)}
+                          >
+                            {asset.category}
+                          </td>
+                          <td
+                            className="sticky z-20 bg-white dark:bg-slate-800 text-slate-500 px-4 py-3 text-[10px] font-medium"
+                            style={stickyTd(2)}
+                          >
+                            {asset.purchaseDate
+                              ? new Date(asset.purchaseDate).toLocaleDateString(
+                                  "en-PH",
+                                )
+                              : "-"}
+                          </td>
+                          <td
+                            className="sticky z-20 bg-white dark:bg-slate-800 text-slate-500 px-4 py-3 text-[10px] font-medium"
+                            style={stickyTd(3)}
+                          >
+                            {asset.lifeSpan}
+                          </td>
+                          <td
+                            className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 font-medium text-[10px] text-slate-800"
+                            style={stickyTd(4)}
+                          >
+                            {formatMoney(asset.assetCost)}
+                          </td>
+                          <td
+                            className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 text-right text-indigo-600 font-semibold text-[10px]"
+                            style={stickyTd(5)}
+                          >
+                            {formatMoney(beginningNBV)}
+                          </td>
 
-                            {deps.map((d, i) => (
-                              <td
-                                key={i}
-                                className="px-2 py-3 text-center text-slate-600 text-[10px]"
-                              >
-                                {d > 0 ? formatMoney(d) : "-"}
-                              </td>
-                            ))}
+                          {deps.map((d, i) => (
+                            <td
+                              key={i}
+                              className="px-2 py-3 text-center text-slate-600 text-[10px]"
+                            >
+                              {d > 0 ? formatMoney(d) : "-"}
+                            </td>
+                          ))}
 
-                            <td className="px-4 py-3 text-right font-bold text-green-500 text-[10px]">
-                              {formatMoney(periodTotal)}
-                            </td>
-                            <td className="px-4 py-3 text-right text-blue-600 font-semibold text-[10px]">
-                              {formatMoney(endingNBV)}
-                            </td>
-                          </tr>
-                        );
-                      },
+                          <td className="px-4 py-3 text-right font-bold text-green-500 text-[10px]">
+                            {formatMoney(periodTotal)}
+                          </td>
+                          <td className="px-4 py-3 text-right text-blue-600 font-semibold text-[10px]">
+                            {formatMoney(endingNBV)}
+                          </td>
+                        </tr>
+                      ),
                     )
                   )}
                 </tbody>
 
-                <tfoot className="sticky bottom-0 z-40">
+                <tfoot>
                   <tr className="bg-slate-100 dark:bg-slate-700 font-bold border-t-2 border-slate-300 dark:border-slate-500">
                     <td
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-xs font-extrabold text-slate-700 dark:text-slate-200 uppercase tracking-wider"
@@ -747,29 +662,19 @@ const AssetDepreciationDashboard = () => {
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3"
                       style={stickyTd(2)}
                     />
-                    {/* Total qty */}
-                    <td
-                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-2 py-3 text-center text-[10px] font-extrabold text-amber-700 dark:text-amber-300"
-                      style={stickyTd(3)}
-                    >
-                      {visibleRowData.reduce(
-                        (sum, r) => sum + (r.asset.qty || 1),
-                        0,
-                      )}
-                    </td>
                     <td
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3"
-                      style={stickyTd(4)}
+                      style={stickyTd(3)}
                     />
                     <td
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-right text-[10px] font-extrabold text-slate-800 dark:text-slate-100"
-                      style={stickyTd(5)}
+                      style={stickyTd(4)}
                     >
                       {formatMoney(totalCost)}
                     </td>
                     <td
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-right text-[10px] font-extrabold text-indigo-700 dark:text-indigo-300"
-                      style={stickyTd(6)}
+                      style={stickyTd(5)}
                     >
                       {formatMoney(totalBegNBV)}
                     </td>

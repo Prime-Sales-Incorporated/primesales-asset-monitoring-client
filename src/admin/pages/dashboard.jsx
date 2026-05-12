@@ -252,7 +252,7 @@ const MainDashboard = () => {
             </div>
 
             <p className="text-sm text-slate-500 uppercase relative z-10">
-              Monthly Depreciation
+              Depreciation this Month
             </p>
 
             <h3 className="text-2xl font-extrabold text-slate-900 relative z-10">

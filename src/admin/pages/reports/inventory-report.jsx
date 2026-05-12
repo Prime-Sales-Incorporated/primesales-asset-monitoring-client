@@ -179,7 +179,7 @@ const InventoryReport = () => {
               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
                 Total Value
               </p>
-              <h3 className="text-3xl text-primary font-extrabold mt-1">
+              <h3 className="text-2xl text-primary font-extrabold mt-1">
                 ₱{totalValue.toLocaleString()}
               </h3>
               <p className="text-xs text-slate-500 mt-4 flex items-center gap-1">

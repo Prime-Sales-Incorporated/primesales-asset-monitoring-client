@@ -55,17 +55,17 @@ const RegisterAsset = () => {
       if (response.ok) {
         console.log("Asset saved:", data);
         // Optionally reset the form
-        setAssetName("");
-        setClassification("");
-        setDescription("");
-        setCategory("");
-        setSerialNumber("");
-        setPurchaseDate("");
-        setIssuedDate("");
-        setIssuedTo("");
-        setAssetCost("");
-        setLifeSpan("");
-        setRentPeriod("");
+        // setAssetName("");
+        // setClassification("");
+        // setDescription("");
+        // setCategory("");
+        // setSerialNumber("");
+        // setPurchaseDate("");
+        // setIssuedDate("");
+        // setIssuedTo("");
+        // setAssetCost("");
+        // setLifeSpan("");
+        // setRentPeriod("");
         setGenerateQR(false);
         alert("Asset registered successfully!");
       } else {
@@ -324,7 +324,8 @@ const RegisterAsset = () => {
             </label>
             <input
               id="lifepan"
-              type="number"
+              type="text"
+              inputMode="numeric"
               min={1}
               required
               placeholder="e.g. 60"
@@ -341,10 +342,10 @@ const RegisterAsset = () => {
               Asset Cost
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               min={0}
               required
-              step={0.01}
               placeholder="e.g. 45000.00"
               className="w-full px-3 py-2 border rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-slate-400 dark:placeholder-slate-500"
               value={assetCost}

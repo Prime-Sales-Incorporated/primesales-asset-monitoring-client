@@ -5,8 +5,8 @@ import API_BASE_URL from "../../API";
 import { fetchAssetsService } from "../../../src/services/assetService";
 
 const categoryIcons = {
-  "Office Eqpt and Furniture": "💻",
-  Electronics: "💻",
+  "Office Eqpt & Furniture": "💻",
+  Laptop: "💻",
   "IT Equipment": "🖥️",
   Vehicles: "🚗",
   Logistics: "🚜",
@@ -15,7 +15,7 @@ const categoryIcons = {
   Tools: "🔧",
   Misc: "📦",
   Uncategorized: "❓",
-  Building: "🏢",
+  "Building Imp": "🏢",
   Unit: "/forklift1.png",
 };
 
@@ -28,92 +28,133 @@ const statusColors = {
   Unknown: "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400",
   Pending:
     "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400",
+  "For Disposal":
+    "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400",
 };
 
-const ITEMS_PER_PAGE = 8;
+const ITEMS_PER_PAGE = 10;
 
-/* ─────────────────────────────────────────────
-   Main Component
-───────────────────────────────────────────── */
+const KNOWN_CATEGORIES = [
+  "Office Eqpt & Furniture",
+  "Land Property",
+  "IT Equipment",
+  "Vehicles",
+  "Logistics",
+  "Furniture",
+  "Office Supplies",
+  "Tools",
+  "Misc",
+  "Building Imp",
+  "Units",
+];
+
 const AssetInventory = () => {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState("card"); // "card" | "table"
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [view, setView] = useState("card");
+  const [showAll, setShowAll] = useState(false);
+
+  const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [previewQR, setPreviewQR] = useState(null);
   const [editingAsset, setEditingAsset] = useState(null);
-  const modalRef = useRef(null);
-  const editModalRef = useRef(null);
 
-  /* ── Data loading ── */
-  const load = async () => {
-    setLoading(true);
-    const data = await fetchAssetsService();
-    setAssets(data);
-    setLoading(false);
+  // Computed stats from the current asset list
+  const stats = {
+    good: assets.filter((a) => a.status === "Good Condition").length,
+    maintenance: assets.filter((a) => a.status === "For Maintenance").length,
+    disposal: assets.filter((a) => a.status === "For Disposal").length,
+    totalCost: assets.reduce((sum, a) => sum + (Number(a.assetCost) || 0), 0),
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  const modalRef = useRef(null);
+  const editModalRef = useRef(null);
+  const debounceRef = useRef(null);
 
+  // ── Debounce search ──
   useEffect(() => {
-    const handleOnline = () => load();
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1);
+    }, 400);
+    return () => clearTimeout(debounceRef.current);
+  }, [searchInput]);
+
+  // ── Reset page on filter change ──
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, selectedStatus, showAll]);
+
+  // ── Fetch assets ──
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const data = await fetchAssetsService({
+          page: showAll ? 1 : currentPage,
+          limit: showAll ? 10000 : ITEMS_PER_PAGE,
+          category: selectedCategory !== "All" ? selectedCategory : undefined,
+          status: selectedStatus !== "All" ? selectedStatus : undefined,
+          search: searchTerm || undefined,
+        });
+
+        if (cancelled) return;
+
+        const list = Array.isArray(data) ? data : (data.assets ?? []);
+        setAssets(list);
+        setTotal(data.total ?? list.length);
+        setTotalPages(showAll ? 1 : (data.totalPages ?? 1));
+      } catch (err) {
+        if (cancelled) return;
+        console.error("Load failed:", err);
+        setAssets([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    fetchData();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentPage, selectedCategory, selectedStatus, searchTerm, showAll]);
+
+  // ── Reload on reconnect ──
+  useEffect(() => {
+    const handleOnline = () => setCurrentPage((p) => p);
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
   }, []);
 
-  /* ── QR modal close on outside click ── */
+  // ── Modal close on outside click ──
   useEffect(() => {
     const handle = (e) => {
       if (modalRef.current && !modalRef.current.contains(e.target))
         setPreviewQR(null);
     };
     if (previewQR) document.addEventListener("mousedown", handle);
-    else document.removeEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
   }, [previewQR]);
 
-  /* ── Edit modal close on outside click ── */
   useEffect(() => {
     const handle = (e) => {
       if (editModalRef.current && !editModalRef.current.contains(e.target))
         setEditingAsset(null);
     };
     if (editingAsset) document.addEventListener("mousedown", handle);
-    else document.removeEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
   }, [editingAsset]);
 
-  /* ── Filtering ── */
-  const filteredAssets = assets.filter((a) => {
-    const q = searchTerm.toLowerCase();
-    const matchSearch =
-      (a.assetName || "").toLowerCase().includes(q) ||
-      (a.serialNumber || "").toLowerCase().includes(q);
-    const matchCat =
-      selectedCategory === "All" ||
-      (a.category || "Uncategorized") === selectedCategory;
-    const matchStatus =
-      selectedStatus === "All" || (a.status || "Unknown") === selectedStatus;
-    return matchSearch && matchCat && matchStatus;
-  });
-
-  const categories = [
-    "All",
-    ...new Set(assets.map((a) => a.category || "Uncategorized")),
-  ];
-
-  /* ── Pagination ── */
-  const totalPages = Math.ceil(filteredAssets.length / ITEMS_PER_PAGE);
-  const paginated = filteredAssets.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE,
-  );
-
+  // ── Pagination helpers ──
   const getPageNumbers = () => {
     const pages = [];
     for (let i = 1; i <= totalPages; i++) {
@@ -128,7 +169,12 @@ const AssetInventory = () => {
     return pages;
   };
 
-  /* ── CRUD ── */
+  const startEntry = total === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+  const endEntry = showAll
+    ? total
+    : Math.min(currentPage * ITEMS_PER_PAGE, total);
+
+  // ── CRUD ──
   const handleEdit = (asset) => setEditingAsset({ ...asset });
 
   const updateAsset = async () => {
@@ -151,14 +197,15 @@ const AssetInventory = () => {
     }
   };
 
-  const handleDelete = async (assetId) => {
+  const handleDelete = async (serialNumber) => {
     if (!window.confirm("Are you sure you want to delete this asset?")) return;
     try {
-      await fetch(`${API_BASE_URL}/api/asset/delete/${assetId}`, {
+      await fetch(`${API_BASE_URL}/api/asset/delete/${serialNumber}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
       });
-      setAssets((prev) => prev.filter((a) => a._id !== assetId));
+      setAssets((prev) => prev.filter((a) => a.serialNumber !== serialNumber));
+      setTotal((prev) => prev - 1);
     } catch (err) {
       console.error(err);
     }
@@ -172,24 +219,60 @@ const AssetInventory = () => {
           category: asset.category || "Uncategorized",
         });
 
-  /* ── Stats ── */
-  const goodCount = filteredAssets.filter(
-    (a) => a.status === "Good Condition",
-  ).length;
-
-  const maintCount = filteredAssets.filter(
-    (a) => a.status === "For Maintenance",
-  ).length;
-
-  const dispCount = filteredAssets.filter(
-    (a) => a.status === "For Disposal",
-  ).length;
-  const totalCost = filteredAssets.reduce(
-    (sum, a) => sum + (Number(a.assetCost) || 0),
-    0,
+  // ── Pagination Bar ──
+  const PaginationBar = () => (
+    <div className="flex items-center justify-between py-2 px-1">
+      <p className="text-xs text-slate-500">
+        {total === 0
+          ? "No entries"
+          : showAll
+            ? `Showing all ${total} entries`
+            : `Showing ${startEntry}–${endEntry} of ${total} entries`}
+      </p>
+      {!showAll && (
+        <div className="flex gap-1">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="px-3 h-7 text-xs border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100"
+          >
+            Previous
+          </button>
+          {getPageNumbers().map((page, i) =>
+            page === "..." ? (
+              <span
+                key={`e-${i}`}
+                className="px-2 flex items-center text-xs text-slate-400"
+              >
+                …
+              </span>
+            ) : (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`px-3 h-7 text-xs border rounded transition ${
+                  currentPage === page
+                    ? "bg-blue-700 text-white border-blue-700"
+                    : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                {page}
+              </button>
+            ),
+          )}
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages || totalPages === 0}
+            className="px-3 h-7 text-xs border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100"
+          >
+            Next
+          </button>
+        </div>
+      )}
+    </div>
   );
 
-  if (loading) {
+  if (loading && assets.length === 0) {
     return (
       <div className="flex items-center justify-center h-screen text-slate-500">
         Loading assets...
@@ -219,11 +302,8 @@ const AssetInventory = () => {
             <input
               type="text"
               placeholder="Name or serial…"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="pl-9 pr-3 h-9 rounded-lg bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-blue-500 w-44 text-sm outline-none"
             />
           </div>
@@ -231,13 +311,11 @@ const AssetInventory = () => {
           {/* Category filter */}
           <select
             value={selectedCategory}
-            onChange={(e) => {
-              setSelectedCategory(e.target.value);
-              setCurrentPage(1);
-            }}
+            onChange={(e) => setSelectedCategory(e.target.value)}
             className="h-9 px-3 rounded-lg bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 text-sm"
           >
-            {categories.map((c) => (
+            <option value="All">All Categories</option>
+            {KNOWN_CATEGORIES.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
@@ -247,20 +325,40 @@ const AssetInventory = () => {
           {/* Status filter */}
           <select
             value={selectedStatus}
-            onChange={(e) => {
-              setSelectedStatus(e.target.value);
-              setCurrentPage(1);
-            }}
+            onChange={(e) => setSelectedStatus(e.target.value)}
             className="h-9 px-3 rounded-lg bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 text-sm"
           >
-            {["All", "Good Condition", "For Maintenance", "For Disposal"].map(
-              (s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ),
-            )}
+            {[
+              "All",
+              "Good Condition",
+              "For Maintenance",
+              "For Disposal",
+              "Pending",
+              "Retired",
+            ].map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
           </select>
+
+          {/* Show All toggle */}
+          <button
+            onClick={() => setShowAll((prev) => !prev)}
+            className={`h-9 px-3 rounded-lg text-sm font-semibold border transition flex items-center gap-1.5 ${
+              showAll
+                ? "bg-blue-700 text-white border-blue-700 hover:bg-blue-800"
+                : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
+            }`}
+            title={
+              showAll ? "Switch to paginated view" : "Show all assets at once"
+            }
+          >
+            <span className="material-icons-round text-[16px]">
+              {showAll ? "filter_list_off" : "select_all"}
+            </span>
+            {showAll ? "Paginate" : "Show All"}
+          </button>
 
           {/* View toggle */}
           <div className="flex rounded-lg ring-1 ring-slate-200 dark:ring-slate-700 overflow-hidden">
@@ -278,10 +376,7 @@ const AssetInventory = () => {
               Cards
             </button>
             <button
-              onClick={() => {
-                setView("table");
-                setCurrentPage(1);
-              }}
+              onClick={() => setView("table")}
               className={`flex items-center gap-1.5 px-3 h-9 text-sm transition ${
                 view === "table"
                   ? "bg-white dark:bg-slate-800 font-medium text-slate-900 dark:text-white"
@@ -298,27 +393,35 @@ const AssetInventory = () => {
       </header>
 
       {/* ── Stats row ── */}
+      {/* NOTE: When showAll is active, stats reflect ALL matching assets.
+               When paginated, stats only reflect the current page. */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
         {[
-          { label: "Total Assets", value: filteredAssets.length, color: "" },
+          {
+            label: showAll ? "Total Assets" : "Total Assets",
+            value: total,
+            color: "",
+          },
           {
             label: "Good Condition",
-            value: goodCount,
+            value: stats.good,
             color: "text-emerald-600",
           },
           {
             label: "For Maintenance",
-            value: maintCount,
+            value: stats.maintenance,
             color: "text-orange-500",
           },
           {
             label: "For Disposal",
-            value: dispCount,
-            color: "text-orange-500",
+            value: stats.disposal,
+            color: "text-red-500",
           },
           {
-            label: "Total Value",
-            value: `₱${totalCost.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
+            label: showAll ? "Total Value (all)" : "Total Value (page)",
+            value: `${stats.totalCost.toLocaleString("en-PH", {
+              minimumFractionDigits: 2,
+            })}`,
             color: "text-blue-600",
           },
         ].map((s) => (
@@ -336,153 +439,192 @@ const AssetInventory = () => {
         ))}
       </div>
 
+      {/* Show All banner */}
+      {showAll && (
+        <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-700 dark:text-blue-300">
+          <span className="material-icons-round text-[16px]">info</span>
+          <span>
+            Showing all <strong>{total}</strong> assets — pagination is
+            disabled. Stats above reflect the full dataset.
+          </span>
+          <button
+            onClick={() => setShowAll(false)}
+            className="ml-auto text-xs underline hover:no-underline"
+          >
+            Switch back to paginated
+          </button>
+        </div>
+      )}
+
+      {/* Refreshing indicator */}
+      {loading && (
+        <div className="text-center py-3 text-sm text-slate-400 animate-pulse">
+          Refreshing...
+        </div>
+      )}
+
       {/* ── CARD VIEW ── */}
       {view === "card" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {filteredAssets.map((asset) => {
-            const icon =
-              categoryIcons[asset.category] || categoryIcons["Uncategorized"];
-            return (
-              <div
-                key={asset._id}
-                className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-amber-300 transition-all"
-              >
-                <div className="p-5">
-                  {/* Top row */}
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center text-2xl overflow-hidden">
-                        {icon.startsWith("/") || icon.startsWith("http") ? (
-                          <img
-                            src={icon}
-                            alt={asset.category}
-                            className="w-full h-full object-contain"
-                          />
-                        ) : (
-                          icon
-                        )}
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {assets.map((asset) => {
+              const icon =
+                categoryIcons[asset.category] || categoryIcons["Uncategorized"];
+              return (
+                <div
+                  key={asset._id}
+                  className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-amber-300 transition-all"
+                >
+                  <div className="p-5">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center text-2xl overflow-hidden">
+                          {icon.startsWith("/") || icon.startsWith("http") ? (
+                            <img
+                              src={icon}
+                              alt={asset.category}
+                              className="w-full h-full object-contain"
+                            />
+                          ) : (
+                            icon
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-sm dark:text-white leading-tight">
+                            {asset.assetName}
+                          </h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {asset.category || "Uncategorized"}
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${
+                          statusColors[asset.status] || statusColors.Unknown
+                        }`}
+                      >
+                        {asset.status || "Unknown"}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-y-3 text-sm mb-4">
+                      {[
+                        ["Serial #", asset.serialNumber || "-"],
+                        ["Issued To", asset.issuedTo || "-"],
+                        [
+                          "Purchase Date",
+                          asset.purchaseDate
+                            ? new Date(asset.purchaseDate).toLocaleDateString()
+                            : "-",
+                        ],
+                        [
+                          "Issue Date",
+                          asset.issuedDate
+                            ? new Date(asset.issuedDate).toLocaleDateString()
+                            : "-",
+                        ],
+                      ].map(([label, val]) => (
+                        <div key={label}>
+                          <p className="text-[10px] uppercase font-bold text-slate-400">
+                            {label}
+                          </p>
+                          <p className="text-slate-700 dark:text-slate-200 text-xs">
+                            {val}
+                          </p>
+                        </div>
+                      ))}
+                      <div>
+                        <p className="text-[10px] uppercase font-bold text-slate-400">
+                          Cost
+                        </p>
+                        <p className="text-emerald-600 font-bold text-xs">
+                          {asset.assetCost
+                            ? `₱${Number(asset.assetCost).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`
+                            : "-"}
+                        </p>
                       </div>
                       <div>
-                        <h3 className="font-bold text-sm dark:text-white leading-tight">
-                          {asset.assetName}
-                        </h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {asset.category || "Uncategorized"}
-                        </p>
-                      </div>
-                    </div>
-                    <span
-                      className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${statusColors[asset.status] || statusColors.Unknown}`}
-                    >
-                      {asset.status || "Unknown"}
-                    </span>
-                  </div>
-
-                  {/* Fields */}
-                  <div className="grid grid-cols-2 gap-y-3 text-sm mb-4">
-                    {[
-                      ["Serial #", asset.serialNumber || "-"],
-                      ["Issued To", asset.issuedTo || "-"],
-                      [
-                        "Purchase Date",
-                        asset.purchaseDate
-                          ? new Date(asset.purchaseDate).toLocaleDateString()
-                          : "-",
-                      ],
-                      [
-                        "Issue Date",
-                        asset.issuedDate
-                          ? new Date(asset.issuedDate).toLocaleDateString()
-                          : "-",
-                      ],
-                    ].map(([label, val]) => (
-                      <div key={label}>
                         <p className="text-[10px] uppercase font-bold text-slate-400">
-                          {label}
+                          Life Span
                         </p>
-                        <p className="text-slate-700 dark:text-slate-200 text-xs">
-                          {val}
+                        <p className="text-xs">
+                          {asset.lifeSpan ? `${asset.lifeSpan} mo.` : "-"}
                         </p>
                       </div>
-                    ))}
-                    <div>
-                      <p className="text-[10px] uppercase font-bold text-slate-400">
-                        Cost
-                      </p>
-                      <p className="text-emerald-600 font-bold text-xs">
-                        {asset.assetCost
-                          ? `₱${Number(asset.assetCost).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`
-                          : "-"}
-                      </p>
                     </div>
-                    <div>
-                      <p className="text-[10px] uppercase font-bold text-slate-400">
-                        Life Span
-                      </p>
-                      <p className="text-xs">
-                        {asset.lifeSpan ? `${asset.lifeSpan} mo.` : "-"}
-                      </p>
-                    </div>
-                  </div>
 
-                  {/* Footer */}
-                  <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-700 pt-3">
-                    <div
-                      className="cursor-pointer hover:opacity-75 transition"
-                      onClick={() => setPreviewQR(qrValue(asset))}
-                    >
-                      <QRCodeCanvas
-                        value={qrValue(asset)}
-                        size={36}
-                        bgColor="white"
-                        fgColor="#000"
-                        level="H"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(asset)}
-                        className="px-3 py-1.5 text-xs bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+                    <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-700 pt-3">
+                      <div
+                        className="cursor-pointer hover:opacity-75 transition"
+                        onClick={() => setPreviewQR(qrValue(asset))}
                       >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(asset._id)}
-                        className="px-3 py-1.5  text-xs bg-red1 text-white rounded-lg hover:bg-red-200 transition"
-                      >
-                        Delete
-                      </button>
+                        <QRCodeCanvas
+                          value={qrValue(asset)}
+                          size={36}
+                          bgColor="white"
+                          fgColor="#000"
+                          level="H"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEdit(asset)}
+                          className="px-3 py-1.5 text-xs bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(asset.serialNumber)}
+                          className="px-3 py-1.5 text-xs bg-red1 text-white rounded-lg hover:bg-red-600 transition"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
+              );
+            })}
+
+            {/* Add card */}
+            <Link
+              to="/assets/add"
+              className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-blue-500 transition-all flex flex-col items-center justify-center p-8 gap-4 min-h-[260px]"
+            >
+              <div className="w-14 h-14 rounded-full bg-white dark:bg-slate-800 shadow-sm border flex items-center justify-center text-slate-400">
+                <span className="material-icons-round text-3xl">add</span>
               </div>
-            );
-          })}
+              <div className="text-center">
+                <p className="font-bold text-slate-600 dark:text-slate-300">
+                  Register New Asset
+                </p>
+                <p className="text-sm text-slate-400">
+                  Click here to add to inventory
+                </p>
+              </div>
+            </Link>
 
-          {/* Add card */}
-          <Link
-            to="/assets/add"
-            className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-blue-500 transition-all flex flex-col items-center justify-center p-8 gap-4 min-h-[260px]"
-          >
-            <div className="w-14 h-14 rounded-full bg-white dark:bg-slate-800 shadow-sm border flex items-center justify-center text-slate-400">
-              <span className="material-icons-round text-3xl">add</span>
-            </div>
-            <div className="text-center">
-              <p className="font-bold text-slate-600 dark:text-slate-300">
-                Register New Asset
-              </p>
-              <p className="text-sm text-slate-400">
-                Click here to add to inventory
-              </p>
-            </div>
-          </Link>
+            {assets.length === 0 && !loading && (
+              <div className="col-span-full text-center py-16 text-slate-400">
+                No assets match your filters.
+              </div>
+            )}
+          </div>
 
-          {filteredAssets.length === 0 && (
-            <div className="col-span-full text-center py-16 text-slate-400">
-              No assets match your filters.
+          {/* Only show pagination bar when not in showAll mode */}
+          {!showAll && totalPages > 1 && (
+            <div className="mt-6">
+              <PaginationBar />
             </div>
           )}
-        </div>
+
+          {/* Show All mode footer count */}
+          {showAll && assets.length > 0 && (
+            <div className="mt-6">
+              <PaginationBar />
+            </div>
+          )}
+        </>
       )}
 
       {/* ── TABLE VIEW ── */}
@@ -513,10 +655,12 @@ const AssetInventory = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                {paginated.map((asset, idx) => (
+                {assets.map((asset, idx) => (
                   <tr
                     key={asset._id}
-                    className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition ${idx % 2 === 1 ? "bg-slate-50/50 dark:bg-slate-800/50" : ""}`}
+                    className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition ${
+                      idx % 2 === 1 ? "bg-slate-50/50 dark:bg-slate-800/50" : ""
+                    }`}
                   >
                     <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white min-w-[180px]">
                       {asset.assetName}
@@ -529,7 +673,9 @@ const AssetInventory = () => {
                     </td>
                     <td className="px-4 py-3">
                       <span
-                        className={` inline-flex whitespace-nowrap  px-2.5 py-1 text-[10.5px] font-semibold rounded-full ${statusColors[asset.status] || statusColors.Unknown}`}
+                        className={`inline-flex whitespace-nowrap px-2.5 py-1 text-[10.5px] font-semibold rounded-full ${
+                          statusColors[asset.status] || statusColors.Unknown
+                        }`}
                       >
                         {asset.status || "Unknown"}
                       </span>
@@ -546,7 +692,9 @@ const AssetInventory = () => {
                     </td>
                     <td className="px-4 py-3 font-semibold text-emerald-600">
                       {asset.assetCost
-                        ? `₱${Number(asset.assetCost).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`
+                        ? `₱${Number(asset.assetCost).toLocaleString("en-PH", {
+                            minimumFractionDigits: 2,
+                          })}`
                         : "-"}
                     </td>
                     <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
@@ -573,11 +721,11 @@ const AssetInventory = () => {
                           </span>
                         </button>
                         <button
-                          onClick={() => handleDelete(asset._id)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 transition rounded"
+                          onClick={() => handleDelete(asset.serialNumber)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 bg-red1 transition rounded"
                           title="Delete"
                         >
-                          <span className="material-icons-round text-[16px]">
+                          <span className="material-icons-round bg-red1 text-[16px]">
                             delete
                           </span>
                         </button>
@@ -585,7 +733,7 @@ const AssetInventory = () => {
                     </td>
                   </tr>
                 ))}
-                {filteredAssets.length === 0 && (
+                {assets.length === 0 && !loading && (
                   <tr>
                     <td
                       colSpan={9}
@@ -599,53 +747,8 @@ const AssetInventory = () => {
             </table>
           </div>
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700">
-            <p className="text-xs text-slate-500">
-              {filteredAssets.length === 0
-                ? "No entries"
-                : `Showing ${(currentPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(currentPage * ITEMS_PER_PAGE, filteredAssets.length)} of ${filteredAssets.length} entries`}
-            </p>
-            <div className="flex gap-1">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="px-3 h-7 text-xs border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100"
-              >
-                Previous
-              </button>
-              {getPageNumbers().map((page, i) =>
-                page === "..." ? (
-                  <span
-                    key={`e-${i}`}
-                    className="px-2 flex items-center text-xs text-slate-400"
-                  >
-                    …
-                  </span>
-                ) : (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-3 h-7 text-xs border rounded transition ${
-                      currentPage === page
-                        ? "bg-blue-700 text-white border-blue-700"
-                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ),
-              )}
-              <button
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(totalPages, p + 1))
-                }
-                disabled={currentPage === totalPages || totalPages === 0}
-                className="px-3 h-7 text-xs border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100"
-              >
-                Next
-              </button>
-            </div>
+          <div className="px-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700">
+            <PaginationBar />
           </div>
         </div>
       )}
@@ -691,7 +794,6 @@ const AssetInventory = () => {
             ref={editModalRef}
             className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-700"
           >
-            {/* Header */}
             <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-700">
               <div>
                 <h3 className="text-lg font-bold dark:text-white">
@@ -709,11 +811,9 @@ const AssetInventory = () => {
               </button>
             </div>
 
-            {/* Body */}
             <div className="px-6 py-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
                 { label: "Asset Name", key: "assetName" },
-                // { label: "Serial Number", key: "serialNumber" },
                 { label: "Description", key: "description", full: true },
                 { label: "Issued To", key: "issuedTo" },
                 {
@@ -721,7 +821,7 @@ const AssetInventory = () => {
                   key: "lifeSpan",
                   type: "number",
                 },
-                { label: "Asset Cost (₱)", key: "assetCost", type: "number" },
+                { label: "Asset Cost (₱)", key: "assetCost", type: "text" },
                 { label: "Purchase Date", key: "purchaseDate", type: "date" },
                 { label: "Issued Date", key: "issuedDate", type: "date" },
               ].map(({ label, key, type = "text", full }) => (
@@ -749,7 +849,6 @@ const AssetInventory = () => {
                 </div>
               ))}
 
-              {/* Status */}
               <div>
                 <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
                   Status
@@ -769,11 +868,11 @@ const AssetInventory = () => {
                   <option>For Maintenance</option>
                   <option>For Disposal</option>
                   <option>Pending</option>
+                  <option>Retired</option>
                 </select>
               </div>
             </div>
 
-            {/* Footer */}
             <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 rounded-b-xl">
               <button
                 onClick={() => setEditingAsset(null)}

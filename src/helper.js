@@ -54,14 +54,21 @@ function buildMonthlySchedule(asset) {
 ================================ */
 export const fetchAssetStats = async () => {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/asset/get/all`, {
+    // Pass a high limit so you get all assets in one shot
+    const res = await fetch(`${API_BASE_URL}/api/asset/get/all?limit=10000`, {
       headers: {
         "ngrok-skip-browser-warning": "true",
         "Content-Type": "application/json",
       },
     });
-    const assets = await res.json();
-    const totalAssets = assets.length;
+
+    const data = await res.json();
+
+    // ✅ Destructure the paginated wrapper
+    const assets = data.assets ?? [];
+    const totalAssets = data.total ?? assets.length;
+
+    // ... rest of your code stays the same
 
     let fullyDepreciated = 0;
     const now = new Date();
