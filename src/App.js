@@ -33,6 +33,8 @@ import OCSIMainDashboard from "./admin/OCSI/pages/dashboard";
 import OCSIAssetDepreciationDashboard from "./admin/OCSI/pages/asset-depr";
 import SidebarOCSI from "./user/components/OCSIsidebar";
 import OCSIAssetInventory from "./admin/OCSI/pages/inventory-revamp";
+import OCSIRentalsDashboard from "./admin/OCSI/pages/rentals";
+import OCSIRegisterAsset from "./admin/OCSI/pages/asset-add";
 
 function AppLayout() {
   const location = useLocation();
@@ -258,7 +260,7 @@ function AppLayout() {
               path="/ocsi/assets/add"
               element={
                 <PrivateRoute type="admin">
-                  <RegisterAsset />
+                  <OCSIRegisterAsset />
                 </PrivateRoute>
               }
             />
@@ -282,7 +284,7 @@ function AppLayout() {
               path="/ocsi/assets/rentals"
               element={
                 <PrivateRoute>
-                  <RentalsDashboard />
+                  <OCSIRentalsDashboard />
                 </PrivateRoute>
               }
             />

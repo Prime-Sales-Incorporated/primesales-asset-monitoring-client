@@ -21,7 +21,7 @@ const SidebarOCSI = ({ mobile = false, isOpen = false, onClose }) => {
   return (
     <aside
       className={`
-        bg-slate-950 text-slate-300 flex flex-col
+        bg-red2 text-slate-300 flex flex-col
         ${
           mobile
             ? `fixed top-0 left-0 min-h-screen z-50 transform transition-transform duration-300 ${
@@ -76,7 +76,7 @@ const SidebarOCSI = ({ mobile = false, isOpen = false, onClose }) => {
             className={`flex items-center px-6 py-3 transition-colors ${
               isActive(item.to)
                 ? "text-teal-400 bg-teal-400/10 border-r-4 border-teal-400"
-                : "hover:bg-slate-900 hover:text-white"
+                : "hover:bg-teal-400/10  hover:text-white"
             }`}
           >
             <img src={item.icon} className="size-6 mr-3" alt="" />
@@ -86,9 +86,9 @@ const SidebarOCSI = ({ mobile = false, isOpen = false, onClose }) => {
       </nav>
 
       {/* User Card */}
-      <div className="p-4 border-t border-slate-800">
-        <div className="flex items-center gap-3 p-2 bg-slate-900 rounded-lg">
-          <div className="w-10 h-10 rounded-full bg-slate-700 overflow-hidden">
+      <div className="p-4 border-t ">
+        <div className="flex items-center gap-3 p-2 bg-red2  rounded-lg">
+          <div className="w-10 h-10 rounded-full bg-red2 overflow-hidden">
             <img
               alt="User avatar"
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0EiblwgW6lSEibrhyFnchU2PXg9jXDe3Zwc_FavfVNd-z6elf6ly9K0xq72uyIkORPjyOQ3-NJusaaaJgKsq6GwlAhcPDk3aSEwoTSqJ75TLnzlWw4Yni_rBC-KT0O9WVPemJXx9HYCN8nYt-DCuwyZsDYN6ZbWhfeW_MUCNJhy_MrbHsOL-SyzFGhWxAbM7uOXsI7c1yoBqDvdb6tUE2VhtgPfp8abBLuxfKWejnHK4AdM1pFZByTXhkSm6_e4TURwYMd185x_o"

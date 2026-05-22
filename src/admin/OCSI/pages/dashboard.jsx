@@ -294,7 +294,7 @@ const OCSIMainDashboard = () => {
           {/* RIGHT PANEL */}
           <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
             {/* UTILIZATION CARD (CIRCLE STYLE BLOCK) */}
-            <div className="bg-[#00174b] p-6 rounded-xl text-white shadow-xl">
+            <div className="bg-red2 p-6 rounded-xl text-white shadow-xl">
               <h4 className="font-bold text-lg mb-1">Asset Utilization</h4>
               <p className="text-xs text-slate-400 mb-6">
                 Capacity performance index

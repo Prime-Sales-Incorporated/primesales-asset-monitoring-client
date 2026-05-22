@@ -1,7 +1,6 @@
 // src/components/RegisterAsset.jsx
 import React, { useState } from "react";
-import Header from "../components/header";
-import API_BASE_URL from "../../API";
+import API_BASE_URL from "../../../API";
 
 const OCSIRegisterAsset = () => {
   const [assetName, setAssetName] = useState("");
