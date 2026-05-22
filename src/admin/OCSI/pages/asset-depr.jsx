@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { saveAs } from "file-saver";
 import ExcelJS from "exceljs";
 import { FaArrowUp, FaArrowDown } from "react-icons/fa6";
-import API_BASE_URL from "../../API";
+import API_BASE_URL from "../../../API";
 
 import {
   getMonthlySchedule,
@@ -15,7 +15,7 @@ import {
   months,
   fiscalMonths,
   quarterMap,
-} from "../../helpers/depreciationHelper";
+} from "../../../helpers/OCSIdepreciationHelper";
 
 // ─── Grouping helper ────────────────────────────────────────────────────────
 // Assets with the same name, purchaseDate, and assetCost are collapsed into one
@@ -44,7 +44,7 @@ const groupAssets = (assets) => {
 };
 // ────────────────────────────────────────────────────────────────────────────
 
-const AssetDepreciationDashboard = () => {
+const OCSIAssetDepreciationDashboard = () => {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [maxFiscalYear, setMaxFiscalYear] = useState(new Date().getFullYear());
@@ -74,7 +74,7 @@ const AssetDepreciationDashboard = () => {
     const fetchAssets = async () => {
       try {
         const res = await fetch(
-          `${API_BASE_URL}/api/asset/get/all?limit=10000`,
+          `${API_BASE_URL}/api/ocsi/asset/get/all?limit=10000`,
           {
             headers: {
               "ngrok-skip-browser-warning": "true",
@@ -820,4 +820,4 @@ const AssetDepreciationDashboard = () => {
   );
 };
 
-export default AssetDepreciationDashboard;
+export default OCSIAssetDepreciationDashboard;

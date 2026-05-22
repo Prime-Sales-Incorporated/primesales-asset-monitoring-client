@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import Header from "../components/header";
 import API_BASE_URL from "../../API";
 
-const RegisterAsset = () => {
+const OCSIRegisterAsset = () => {
   const [assetName, setAssetName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
@@ -407,4 +407,4 @@ const RegisterAsset = () => {
   );
 };
 
-export default RegisterAsset;
+export default OCSIRegisterAsset;

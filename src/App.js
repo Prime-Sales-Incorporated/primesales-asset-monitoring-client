@@ -17,20 +17,22 @@ import HybridQRScanner from "./scanner";
 import CameraTest from "./cameraTest";
 import { Toaster } from "react-hot-toast";
 import Home from "./website pages/Home";
-import OurSolutions from "./website pages/solutions";
-import WebsiteMain from "./website pages/HomePage";
 import AssetDepreciationDashboard from "./admin/pages/asset-depr";
 import AssetDetailsTable from "./admin/pages/asset-list";
 import Sidebar from "./user/components/sidebar";
 import AssetInventory from "./admin/pages/inventory-revamp";
 import RentalsDashboard from "./admin/pages/rentals";
 import PrimeTrackAudit from "./admin/pages/rentals/rental-auditpage";
-
 import ReportsAnalytics from "./admin/pages/report";
 import InventoryReport from "./admin/pages/reports/inventory-report";
 import FinanceReport from "./admin/pages/reports/finance-report";
 import Warehouse from "./admin/pages/warehouse/warehouse-stocks";
 import ScrollToTop from "./admin/hooks/scrollToTop";
+import TenantSelect from "./user/pages/chooseTenant";
+import OCSIMainDashboard from "./admin/OCSI/pages/dashboard";
+import OCSIAssetDepreciationDashboard from "./admin/OCSI/pages/asset-depr";
+import SidebarOCSI from "./user/components/OCSIsidebar";
+import OCSIAssetInventory from "./admin/OCSI/pages/inventory-revamp";
 
 function AppLayout() {
   const location = useLocation();
@@ -38,32 +40,35 @@ function AppLayout() {
 
   const hideSidebarRoutes = [
     "/",
+    "/tenant",
     "/login",
     "/register",
     "/admin/login",
     "/admin/register",
   ];
 
-  // Better login detection
   const token = localStorage.getItem("userToken");
   const user = localStorage.getItem("userInfo");
   const isLoggedIn = !!token || !!user;
 
-  // Hide sidebar logic
   const hideSidebar =
     hideSidebarRoutes.includes(location.pathname) ||
     (location.pathname === "/scanner" && !isLoggedIn);
 
+  const isOCSI = location.pathname.startsWith("/ocsi");
+  const ActiveSidebar = isOCSI ? SidebarOCSI : Sidebar;
+
   return (
     <div className="min-h-screen flex">
       <ScrollToTop />
+
       {/* DESKTOP SIDEBAR */}
       {!hideSidebar && (
         <div className="hidden lg:block h-screen">
-          {" "}
-          <Sidebar />{" "}
+          <ActiveSidebar />
         </div>
       )}
+
       {/* MOBILE SIDEBAR */}
       {!hideSidebar && (
         <>
@@ -72,7 +77,7 @@ function AppLayout() {
               sidebarOpen ? "translate-x-0" : "-translate-x-full"
             }`}
           >
-            <Sidebar />
+            <ActiveSidebar onClose={() => setSidebarOpen(false)} mobile />
           </div>
 
           {sidebarOpen && (
@@ -83,6 +88,7 @@ function AppLayout() {
           )}
         </>
       )}
+
       {/* MAIN CONTENT */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         {/* MOBILE HEADER */}
@@ -91,11 +97,9 @@ function AppLayout() {
             <button onClick={() => setSidebarOpen(true)} className="text-2xl">
               ☰
             </button>
-
             <div className="h-10 w-28">
               <img src="/logo.png" alt="Logo" className="h-10" />
             </div>
-
             <div className="w-6" />
           </div>
         )}
@@ -107,8 +111,6 @@ function AppLayout() {
           <Routes>
             {/* WEBSITE ROUTES */}
             <Route path="/home" element={<Home />} />
-            <Route path="/solutions" element={<OurSolutions />} />
-            <Route path="/main" element={<WebsiteMain />} />
 
             {/* PUBLIC ROUTES */}
             <Route path="/cam" element={<CameraTest />} />
@@ -116,10 +118,23 @@ function AppLayout() {
             <Route path="/login" element={<LoginUser />} />
             <Route path="/admin/login" element={<LoginAdmin />} />
 
+            {/* TENANT SELECT */}
+            <Route
+              path="/tenant"
+              element={
+                <PrivateRoute>
+                  <TenantSelect />
+                </PrivateRoute>
+              }
+            />
+
             {/* SCANNER */}
             <Route path="/scanner" element={<HybridQRScanner />} />
 
-            {/* DASHBOARD */}
+            {/* ======================== */}
+            {/* PRIME SALES ROUTES       */}
+            {/* ======================== */}
+
             <Route
               path="/dashboard"
               element={
@@ -128,8 +143,6 @@ function AppLayout() {
                 </PrivateRoute>
               }
             />
-
-            {/* INVENTORY */}
             <Route
               path="/inv"
               element={
@@ -138,7 +151,6 @@ function AppLayout() {
                 </PrivateRoute>
               }
             />
-
             <Route
               path="/assets/list"
               element={
@@ -147,8 +159,6 @@ function AppLayout() {
                 </PrivateRoute>
               }
             />
-
-            {/* RENTALS */}
             <Route
               path="/assets/rentals"
               element={
@@ -157,13 +167,14 @@ function AppLayout() {
                 </PrivateRoute>
               }
             />
-
             <Route
               path="/assets/rentals/details/:serialNumber"
-              element={<PrimeTrackAudit />}
+              element={
+                <PrivateRoute>
+                  <PrimeTrackAudit />
+                </PrivateRoute>
+              }
             />
-
-            {/* WAREHOUSE */}
             <Route
               path="/warehouse"
               element={
@@ -172,8 +183,6 @@ function AppLayout() {
                 </PrivateRoute>
               }
             />
-
-            {/* DEPRECIATION */}
             <Route
               path="/assets/depreciation"
               element={
@@ -182,8 +191,6 @@ function AppLayout() {
                 </PrivateRoute>
               }
             />
-
-            {/* REPORTS */}
             <Route
               path="/reports"
               element={
@@ -192,7 +199,6 @@ function AppLayout() {
                 </PrivateRoute>
               }
             />
-
             <Route
               path="/reports/inventory"
               element={
@@ -201,7 +207,6 @@ function AppLayout() {
                 </PrivateRoute>
               }
             />
-
             <Route
               path="/reports/finance"
               element={
@@ -210,8 +215,6 @@ function AppLayout() {
                 </PrivateRoute>
               }
             />
-
-            {/* ADD ASSET */}
             <Route
               path="/assets/add"
               element={
@@ -220,13 +223,114 @@ function AppLayout() {
                 </PrivateRoute>
               }
             />
-
-            {/* OFFLINE TRANSACTIONS */}
             <Route
               path="/trans"
               element={
                 <PrivateRoute>
                   <TransactionsOffline />
+                </PrivateRoute>
+              }
+            />
+
+            {/* ======================== */}
+            {/* OCSI ROUTES              */}
+            {/* ======================== */}
+
+            <Route
+              path="/ocsi/dashboard"
+              element={
+                <PrivateRoute>
+                  <OCSIMainDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/ocsi/depreciation"
+              element={
+                <PrivateRoute>
+                  <OCSIAssetDepreciationDashboard />
+                </PrivateRoute>
+              }
+            />
+
+            {/* Placeholder OCSI routes — swap components as you build them */}
+            <Route
+              path="/ocsi/assets/add"
+              element={
+                <PrivateRoute type="admin">
+                  <RegisterAsset />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/ocsi/assets/list"
+              element={
+                <PrivateRoute>
+                  <OCSIAssetInventory />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/ocsi/assets/depreciation"
+              element={
+                <PrivateRoute>
+                  <OCSIAssetDepreciationDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/ocsi/assets/rentals"
+              element={
+                <PrivateRoute>
+                  <RentalsDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/ocsi/assets/rentals/details/:serialNumber"
+              element={
+                <PrivateRoute>
+                  <PrimeTrackAudit />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/ocsi/warehouse"
+              element={
+                <PrivateRoute>
+                  <Warehouse />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/ocsi/reports"
+              element={
+                <PrivateRoute>
+                  <ReportsAnalytics />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/ocsi/reports/inventory"
+              element={
+                <PrivateRoute>
+                  <InventoryReport />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/ocsi/reports/finance"
+              element={
+                <PrivateRoute>
+                  <FinanceReport />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/ocsi/scanner"
+              element={
+                <PrivateRoute>
+                  <HybridQRScanner />
                 </PrivateRoute>
               }
             />
@@ -240,8 +344,7 @@ function AppLayout() {
 function App() {
   return (
     <Router>
-      {" "}
-      <AppLayout />{" "}
+      <AppLayout />
     </Router>
   );
 }

@@ -8,17 +8,19 @@ import {
   getOverallHealth,
   getAssetCategoryHealth,
 } from "../../../utils/inventoryReportHelper";
-import { fetchAssetsService } from "../../../services/assetService";
+import { fetchAllAssetsService } from "../../../services/assetService";
 import { formatCriticalAssets } from "../../../utils/inventoryReportHelper";
 import html2pdf from "html2pdf.js";
 
 const InventoryReport = () => {
   const reportRef = useRef();
+  const [assets, setAssets] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
     setLoading(true);
-    const data = await fetchAssetsService();
-    setAssets(data);
+    const data = await fetchAllAssetsService();
+    setAssets(Array.isArray(data) ? data : (data.assets ?? []));
     setLoading(false);
   };
 
@@ -26,8 +28,6 @@ const InventoryReport = () => {
     load();
   }, []);
 
-  const [assets, setAssets] = useState([]);
-  const [loading, setLoading] = useState(true);
   const totalAssets = getTotalAssets(assets);
   const totalValue = getTotalValue(assets);
   const categoryStats = getCategoryConditionStats(assets);
@@ -38,8 +38,6 @@ const InventoryReport = () => {
 
   const handleExportPDF = () => {
     const element = reportRef.current;
-
-    // 👇 add export mode
     document.body.classList.add("exporting");
 
     const opt = {
@@ -47,7 +45,7 @@ const InventoryReport = () => {
       filename: "Inventory_Report.pdf",
       image: { type: "jpeg", quality: "100%" },
       html2canvas: {
-        scale: 4, // keep this lower
+        scale: 4,
         scrollX: 0,
         scrollY: 0,
       },
@@ -67,11 +65,21 @@ const InventoryReport = () => {
       });
   };
 
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-surface dark:bg-background-dark">
+        <div className="flex flex-col items-center gap-4">
+          <span className="material-symbols-outlined text-primary text-5xl animate-spin">
+            autorenew
+          </span>
+          <p className="text-slate-500 font-semibold">Loading report...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-surface dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
-      {/* Sidebar */}
-
-      {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
         <header className="h-16 flex items-center justify-between px-8 bg-white dark:bg-background-dark/50 border-b border-slate-200 dark:border-slate-800">
@@ -146,11 +154,8 @@ const InventoryReport = () => {
           {/* Top-level Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
             {/* Total Assets */}
-            <div className="bg- dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
               <div className="flex justify-between items-start mb-4">
-                {/* <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                  <span className="material-symbols-outlined">inventory</span>
-                </div> */}
                 <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-full">
                   +2.5%
                 </span>
@@ -158,20 +163,18 @@ const InventoryReport = () => {
               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
                 Total Assets
               </p>
-              <h3 className="text-3xl font-extrabold text-black font-headline">
+              <h3 className="text-3xl font-extrabold text-black dark:text-white font-headline">
                 {totalAssets}
               </h3>
               <p className="text-xs text-slate-500 mt-4 flex items-center gap-1">
                 <span className="material-symbols-outlined text-sm">info</span>
-                Total Active Asset
+                Total Active Assets
               </p>
             </div>
+
             {/* Total Value */}
-            <div className="bg- dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
               <div className="flex justify-between items-start mb-4">
-                {/* <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                  <span className="material-symbols-outlined">payments</span>
-                </div> */}
                 <span className="text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-500/10 px-2 py-1 rounded-full">
                   -0.8%
                 </span>
@@ -187,12 +190,10 @@ const InventoryReport = () => {
                 Gross book value of all active assets
               </p>
             </div>
+
             {/* Overall Health */}
-            <div className="bg-  dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
               <div className="flex justify-between items-start mb-4">
-                {/* <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                  <span className="material-symbols-outlined">favorite</span>
-                </div> */}
                 <span className="text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-500/10 px-2 py-1 rounded-full">
                   -1.2%
                 </span>
@@ -210,13 +211,8 @@ const InventoryReport = () => {
             </div>
 
             {/* Critical Issues */}
-            <div className="bg-red dark:bg-slate-800 p-6 rounded-xl border  dark:border-slate-700 shadow-sm  ring-rose-500/20">
+            <div className="bg-red dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm ring-rose-500/20">
               <div className="flex justify-between items-start mb-4">
-                {/* <div className="p-2 bg-rose-100 dark:bg-rose-500/10 rounded-lg text-rose-600 dark:text-rose-400">
-                  <span className="material-symbols-outlined">
-                    report_problem
-                  </span>
-                </div> */}
                 <span className="text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-500/10 px-2 py-1 rounded-full">
                   +2 New
                 </span>
@@ -234,10 +230,10 @@ const InventoryReport = () => {
             </div>
           </div>
 
-          {/* Condition by Category */}
+          {/* Condition by Category + Category Health Table */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
             <div className="xl:col-span-1 bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-              <h4 className="text-xl font-extrabold  mb-6">
+              <h4 className="text-xl font-extrabold mb-6">
                 Condition by Category
               </h4>
               <div className="space-y-6">
@@ -253,29 +249,30 @@ const InventoryReport = () => {
                       <div
                         className="h-full bg-emerald-500"
                         style={{ width: `${cat.goodPercent}%` }}
-                      ></div>
+                      />
                       <div
                         className="h-full bg-amber-400"
                         style={{ width: `${cat.maintenancePercent}%` }}
-                      ></div>
+                      />
                       <div
                         className="h-full bg-rose-500"
                         style={{ width: `${cat.disposalPercent}%` }}
-                      ></div>
+                      />
                     </div>
                   </div>
                 ))}
               </div>
               <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-700 flex justify-center gap-4 text-[11px] font-bold uppercase tracking-wider">
                 <div className="flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-emerald-500"></span>
+                  <span className="size-2 rounded-full bg-emerald-500" />
                   Good
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-amber-400"></span>Fair
+                  <span className="size-2 rounded-full bg-amber-400" />
+                  Fair
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-rose-500"></span>
+                  <span className="size-2 rounded-full bg-rose-500" />
                   Critical
                 </div>
               </div>
@@ -331,7 +328,7 @@ const InventoryReport = () => {
                                       : "bg-rose-500"
                                 }`}
                                 style={{ width: `${c.averageHealth}%` }}
-                              ></div>
+                              />
                             </div>
                           </div>
                         </td>
@@ -366,43 +363,37 @@ const InventoryReport = () => {
                 Critical Assets Requiring Attention
               </h4>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Example Asset Cards */}
               {formattedCriticalAssets.map((asset) => (
                 <div
                   key={asset.id}
-                  className={`bg-white dark:bg-slate-800 p-5 rounded-xl border-l-4 border-y border-r shadow-sm
-      ${
-        asset.statusColor === "rose"
-          ? "border-l-rose-500 border-slate-200 dark:border-slate-700"
-          : asset.statusColor === "amber"
-            ? "border-l-amber-500 border-slate-200 dark:border-slate-700"
-            : "border-l-emerald-500 border-slate-200 dark:border-slate-700"
-      }`}
+                  className={`bg-white dark:bg-slate-800 p-5 rounded-xl border-l-4 border-y border-r shadow-sm ${
+                    asset.statusColor === "rose"
+                      ? "border-l-rose-500 border-slate-200 dark:border-slate-700"
+                      : asset.statusColor === "amber"
+                        ? "border-l-amber-500 border-slate-200 dark:border-slate-700"
+                        : "border-l-emerald-500 border-slate-200 dark:border-slate-700"
+                  }`}
                 >
                   <div className="flex justify-between items-start mb-3">
                     <span className="text-xs font-bold uppercase text-slate-500">
                       Asset ID: {asset.assetTag}
                     </span>
                     <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase
-          ${
-            asset.statusColor === "rose"
-              ? "bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400"
-              : asset.statusColor === "amber"
-                ? "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400"
-                : "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-          }`}
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                        asset.statusColor === "rose"
+                          ? "bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400"
+                          : asset.statusColor === "amber"
+                            ? "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                            : "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                      }`}
                     >
                       {asset.status}
                     </span>
                   </div>
-
                   <h5 className="font-bold text-slate-900 dark:text-white">
                     {asset.name}
                   </h5>
-
                   <p className="text-sm text-slate-500 mt-1 italic">
                     "{asset.issue}"
                   </p>
@@ -411,7 +402,6 @@ const InventoryReport = () => {
                       ? new Date(asset.issuedDate).toLocaleDateString()
                       : "-"}
                   </p>
-
                   <div className="mt-4 flex justify-between items-center">
                     <span className="text-xs font-medium text-slate-400">
                       {asset.assignedTo}
@@ -432,11 +422,11 @@ const InventoryReport = () => {
             </h4>
             <p className="max-w-2xl text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
               Overall inventory health remains stable at{" "}
-              <span className="text-primary font-bold">92%</span>. Critical
-              issues have increased by 3 units this quarter, primarily driven by
-              IT hardware reaching end-of-life cycles. We recommend prioritizing
-              the replacement of Critical IT assets to avoid operational
-              downtime in Q3.
+              <span className="text-primary font-bold">{overallHealth}%</span>.
+              Critical issues have increased by 3 units this quarter, primarily
+              driven by IT hardware reaching end-of-life cycles. We recommend
+              prioritizing the replacement of Critical IT assets to avoid
+              operational downtime in Q3.
             </p>
             <div className="flex gap-4 mt-6">
               <button className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-6 py-2 rounded-xl text-sm font-bold border border-slate-200 dark:border-slate-700 hover:shadow-md transition-shadow">
