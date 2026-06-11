@@ -324,7 +324,7 @@ const RegisterAsset = () => {
             </label>
             <input
               id="lifepan"
-              type="text"
+              type="number"
               inputMode="numeric"
               min={1}
               required

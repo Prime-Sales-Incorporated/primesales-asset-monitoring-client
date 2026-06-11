@@ -361,7 +361,7 @@ const AssetInventory = () => {
           </button>
 
           {/* View toggle */}
-          <div className="flex rounded-lg ring-1 ring-slate-200 dark:ring-slate-700 overflow-hidden">
+          <div className="flex  rounded-lg ring-1 ring-slate-200 dark:ring-slate-700 overflow-hidden ml-auto">
             <button
               onClick={() => setView("card")}
               className={`flex items-center gap-1.5 px-3 h-9 text-sm transition ${

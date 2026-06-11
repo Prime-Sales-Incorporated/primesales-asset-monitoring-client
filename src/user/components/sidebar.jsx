@@ -26,7 +26,7 @@ const Sidebar = ({ mobile = false, isOpen = false, onClose }) => {
     >
       {/* Logo */}
       <Link
-        to="/"
+        to="/tenant"
         onClick={handleClick}
         className="flex items-center justify-center py-4"
       >
