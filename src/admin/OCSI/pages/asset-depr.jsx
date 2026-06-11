@@ -24,7 +24,6 @@ const groupAssets = (assets) => {
   const map = new Map();
 
   assets.forEach((asset) => {
-    // Normalise the key: trim name, strip time from date, round cost to 2dp
     const name = (asset.assetName || "").trim();
     const date = asset.purchaseDate
       ? new Date(asset.purchaseDate).toISOString().slice(0, 10)
@@ -35,7 +34,6 @@ const groupAssets = (assets) => {
     if (map.has(key)) {
       map.get(key).qty += 1;
     } else {
-      // Keep a single representative asset object; qty starts at 1
       map.set(key, { ...asset, qty: 1 });
     }
   });
@@ -47,19 +45,17 @@ const groupAssets = (assets) => {
 const OCSIAssetDepreciationDashboard = () => {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [maxFiscalYear, setMaxFiscalYear] = useState(new Date().getFullYear());
-  const [selectedFiscalYear, setSelectedFiscalYear] = useState(
-    new Date().getFullYear(),
-  );
+  const [maxYear, setMaxYear] = useState(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedQuarter, setSelectedQuarter] = useState("ALL");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [showFullLife, setShowFullLife] = useState(false);
   const [dateSortOrder, setDateSortOrder] = useState(null);
   const [purchasedYear, setPurchasedYear] = useState("ALL");
-  const [showCurrentFYOnly, setShowCurrentFYOnly] = useState(false);
+  const [showCurrentYearOnly, setShowCurrentYearOnly] = useState(false);
   const [hideZeroDepreciation, setHideZeroDepreciation] = useState(false);
 
-  // 7 frozen columns (added Qty)
+  // 7 frozen columns
   const stickyCols = [170, 120, 85, 45, 65, 120, 120];
   const leftOffsets = stickyCols.reduce((acc, w, i) => {
     acc.push(i === 0 ? 0 : acc[i - 1] + stickyCols[i - 1]);
@@ -95,7 +91,7 @@ const OCSIAssetDepreciationDashboard = () => {
             lastYear = Math.max(lastYear, last.year);
           }
         });
-        setMaxFiscalYear(lastYear);
+        setMaxYear(lastYear);
       } catch (err) {
         console.error(err);
         setAssets([]);
@@ -111,10 +107,11 @@ const OCSIAssetDepreciationDashboard = () => {
     ...new Set(assets.map((a) => a.category).filter(Boolean)),
   ];
 
-  const fiscalStart = new Date(selectedFiscalYear, 5, 1);
-  const fiscalEnd = new Date(selectedFiscalYear + 1, 4, 31);
+  // Calendar year boundaries
+  const yearStart = new Date(selectedYear, 0, 1); // Jan 1
+  const yearEnd = new Date(selectedYear, 11, 31); // Dec 31
 
-  // 1. Filter raw assets first
+  // 1. Filter raw assets
   let filteredAssets = assets.filter((a) => {
     const categoryMatch =
       selectedCategory === "ALL" || a.category === selectedCategory;
@@ -124,9 +121,9 @@ const OCSIAssetDepreciationDashboard = () => {
     const purchasedYearMatch =
       purchasedYear === "ALL" || purchaseYear === Number(purchasedYear);
     if (!purchasedYearMatch) return false;
-    if (!showCurrentFYOnly) return categoryMatch;
-    const inFiscalYear = purchase >= fiscalStart && purchase <= fiscalEnd;
-    return categoryMatch && inFiscalYear;
+    if (!showCurrentYearOnly) return categoryMatch;
+    const inYear = purchase >= yearStart && purchase <= yearEnd;
+    return categoryMatch && inYear;
   });
 
   // 2. Group into unique entries with qty
@@ -152,11 +149,10 @@ const OCSIAssetDepreciationDashboard = () => {
     const { qty = 1 } = asset;
     const schedule = getMonthlySchedule(asset);
 
-    // Per-unit values
-    const unitBeginningNBV = getBeginningNBV(asset, selectedFiscalYear);
+    const unitBeginningNBV = getBeginningNBV(asset, selectedYear);
     const unitEndingNBV = getNBVForPeriod(
       asset,
-      selectedFiscalYear,
+      selectedYear,
       selectedQuarter === "ALL" ? "ALL" : Number(selectedQuarter),
     );
 
@@ -168,14 +164,13 @@ const OCSIAssetDepreciationDashboard = () => {
           return e ? e.dep : 0;
         })
       : selectedQuarter === "ALL"
-        ? getScheduleForFiscalYear(schedule, selectedFiscalYear)
+        ? getScheduleForFiscalYear(schedule, selectedYear)
         : getScheduleForQuarter(
             schedule,
-            selectedFiscalYear,
+            selectedYear,
             Number(selectedQuarter),
           );
 
-    // Scale by qty
     const beginningNBV = unitBeginningNBV * qty;
     const endingNBV = unitEndingNBV * qty;
     const deps = unitDeps.map((d) => d * qty);
@@ -228,16 +223,16 @@ const OCSIAssetDepreciationDashboard = () => {
     sheet.mergeCells(1, 1, 1, totalColumns);
     titleRow.alignment = { horizontal: "center" };
 
-    const purchaseFilterNote = showCurrentFYOnly
-      ? " (All purchased this fiscal year)"
+    const purchaseFilterNote = showCurrentYearOnly
+      ? " (All purchased this calendar year)"
       : "";
     const fiscalRow = sheet.addRow([
       showFullLife
         ? `Full Lifespan View${purchaseFilterNote}`
-        : `Fiscal Year: ${selectedFiscalYear}-${selectedFiscalYear + 1} ${
+        : `Calendar Year: ${selectedYear} ${
             selectedQuarter !== "ALL"
-              ? `– Quarter: Q${selectedQuarter}`
-              : "(Full Fiscal Year)"
+              ? `– Quarter: Q${selectedQuarter} (${quarterMap[selectedQuarter].map((m) => months[m]).join(" - ")})`
+              : "(Full Year)"
           }${purchaseFilterNote}`,
     ]);
     fiscalRow.font = { bold: true };
@@ -255,7 +250,7 @@ const OCSIAssetDepreciationDashboard = () => {
       20,
       12,
       12,
-      6, // Qty
+      6,
       8,
       20,
       18,
@@ -348,7 +343,7 @@ const OCSIAssetDepreciationDashboard = () => {
       new Blob([buffer]),
       showFullLife
         ? "AssetDepreciation_FullLifespan.xlsx"
-        : `AssetDepreciation_${selectedFiscalYear}_${selectedQuarter}.xlsx`,
+        : `AssetDepreciation_${selectedYear}_${selectedQuarter}.xlsx`,
     );
   };
 
@@ -391,22 +386,20 @@ const OCSIAssetDepreciationDashboard = () => {
               <div className="flex flex-wrap gap-2 items-center dark:bg-slate-800 p-2 rounded-lg dark:border-slate-700">
                 <div>
                   <label className="text-[10px] font-bold block text-on-surface-variant uppercase tracking-widest">
-                    Fiscal Year
+                    Calendar Year
                   </label>
                   <select
                     disabled={showFullLife}
-                    value={selectedFiscalYear}
-                    onChange={(e) =>
-                      setSelectedFiscalYear(Number(e.target.value))
-                    }
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(Number(e.target.value))}
                     className="rounded border px-1.5 py-0.5 text-xs dark:bg-slate-900"
                   >
                     {Array.from(
-                      { length: maxFiscalYear - 2020 + 1 },
+                      { length: maxYear - 2020 + 1 },
                       (_, i) => 2020 + i,
                     ).map((y) => (
                       <option key={y} value={y}>
-                        {y}-{y + 1}
+                        {y}
                       </option>
                     ))}
                   </select>
@@ -421,7 +414,7 @@ const OCSIAssetDepreciationDashboard = () => {
                     onChange={(e) => setSelectedQuarter(e.target.value)}
                     className="rounded border px-1.5 py-0.5 text-xs dark:bg-slate-900"
                   >
-                    <option value="ALL">Fiscal Year</option>
+                    <option value="ALL">Full Year</option>
                     {Object.entries(quarterMap).map(([q, qMonths]) => (
                       <option key={q} value={q}>
                         Q{q} ({qMonths.map((m) => months[m]).join(" - ")})
@@ -456,7 +449,7 @@ const OCSIAssetDepreciationDashboard = () => {
                   >
                     <option value="ALL">ALL</option>
                     {Array.from(
-                      { length: maxFiscalYear - 2019 },
+                      { length: maxYear - 2019 },
                       (_, i) => 2020 + i,
                     ).map((y) => (
                       <option key={y} value={y}>
@@ -479,11 +472,11 @@ const OCSIAssetDepreciationDashboard = () => {
                 <label className="text-xs gap-1.5 flex items-center font-semibold text-slate-700">
                   <input
                     type="checkbox"
-                    checked={showCurrentFYOnly}
-                    onChange={(e) => setShowCurrentFYOnly(e.target.checked)}
+                    checked={showCurrentYearOnly}
+                    onChange={(e) => setShowCurrentYearOnly(e.target.checked)}
                     className="rounded text-blue-500 focus:ring-blue-500/20 w-3.5 h-3.5 border-slate-300"
                   />
-                  Purchased this Fiscal Year
+                  Purchased this Year
                 </label>
 
                 <label className="text-xs gap-1.5 flex items-center font-semibold text-slate-700">
@@ -507,11 +500,11 @@ const OCSIAssetDepreciationDashboard = () => {
 
             {/* Summary cards */}
             <div className="col-span-12 md:col-span-4 flex flex-col gap-2">
-              {/* Beg Bal as of May 31 */}
+              {/* Beg Bal as of Dec 31 previous year */}
               <div className="bg-indigo-50 px-4 py-2 rounded-lg border border-indigo-100 flex justify-between items-center">
                 <div>
                   <p className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest mb-0.5">
-                    Beg. Bal. as of May 31, {selectedFiscalYear}
+                    Beg. Bal. as of Dec 31, {selectedYear - 1}
                   </p>
                   <h3 className="text-base font-extrabold text-indigo-800">
                     {formatMoney(totalBegNBV)}
@@ -592,7 +585,6 @@ const OCSIAssetDepreciationDashboard = () => {
                         {dateSortOrder === "desc" && <FaArrowDown />}
                       </div>
                     </th>
-                    {/* NEW: Qty column */}
                     <th
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-2 py-3 text-center text-[10px] font-bold text-on-surface-variant uppercase tracking-widest"
                       style={stickyTh(3)}
@@ -692,7 +684,6 @@ const OCSIAssetDepreciationDashboard = () => {
                                   ).toLocaleDateString("en-PH")
                                 : "-"}
                             </td>
-                            {/* Qty cell */}
                             <td
                               className="sticky z-20 bg-white dark:bg-slate-800 px-2 py-3 text-center text-[10px] font-bold text-amber-600"
                               style={stickyTd(3)}
@@ -767,7 +758,6 @@ const OCSIAssetDepreciationDashboard = () => {
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3"
                       style={stickyTd(2)}
                     />
-                    {/* Total qty */}
                     <td
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-2 py-3 text-center text-[10px] font-extrabold text-amber-700 dark:text-amber-300"
                       style={stickyTd(3)}

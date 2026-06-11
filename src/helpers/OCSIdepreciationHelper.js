@@ -16,13 +16,13 @@ export const months = [
 ];
 
 export const quarterMap = {
-  1: [5, 6, 7],
-  2: [8, 9, 10],
-  3: [11, 0, 1],
-  4: [2, 3, 4],
+  1: [0, 1, 2], // Q1: Jan, Feb, Mar
+  2: [3, 4, 5], // Q2: Apr, May, Jun
+  3: [6, 7, 8], // Q3: Jul, Aug, Sep
+  4: [9, 10, 11], // Q4: Oct, Nov, Dec
 };
 
-export const fiscalMonths = [5, 6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4];
+export const fiscalMonths = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
 export const getMonthlySchedule = (asset) => {
   const cost = Number(asset.assetCost) || 0;
@@ -71,8 +71,8 @@ export const getMonthlySchedule = (asset) => {
   return schedule;
 };
 
-export const getFiscalYearLabel = (year, month, fiscalStartMonth = 5) =>
-  month >= fiscalStartMonth ? year : year - 1;
+// Calendar year: the year of the entry is always the calendar year
+export const getFiscalYearLabel = (year, month) => year;
 
 export const getNBVForPeriod = (asset, fiscalYear, quarter = "ALL") => {
   const schedule = getMonthlySchedule(asset);
