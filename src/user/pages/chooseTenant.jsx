@@ -1,12 +1,11 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-
 const tenants = [
   {
     id: "prime-sales",
     name: "Prime Sales Inc",
     description: "Sales & asset operations",
-    icon: "🏬",
+    image: "/logo.png",
     path: "/dashboard",
     accent: "#185FA5",
     bg: "#E6F1FB",
@@ -15,7 +14,7 @@ const tenants = [
     id: "optichain",
     name: "Optichain Solutions Inc",
     description: "Supply chain & logistics",
-    icon: "🏭",
+    image: "/6.png",
     path: "/ocsi/dashboard",
     accent: "#0F6E56",
     bg: "#E1F5EE",
@@ -46,12 +45,11 @@ const TenantSelect = () => {
             onClick={() => navigate(tenant.path)}
             className="bg-white dark:bg-background-dark border border-primary/20 dark:border-primary/30 rounded-xl p-7 text-left flex flex-col gap-3 hover:border-primary/60 dark:hover:border-primary/60 transition-colors group"
           >
-            <div
-              className="w-11 h-11 rounded-lg flex items-center justify-center text-xl"
-              style={{ background: tenant.bg }}
-            >
-              {tenant.icon}
-            </div>
+            <img
+              src={tenant.image}
+              alt={tenant.name}
+              className="w-20 h-20 object-contain mx-auto mb-2"
+            />
             <div>
               <p className="text-base font-semibold text-gray-900 dark:text-white mb-1">
                 {tenant.name}
