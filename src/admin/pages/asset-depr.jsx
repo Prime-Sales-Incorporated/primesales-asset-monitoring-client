@@ -60,7 +60,7 @@ const AssetDepreciationDashboard = () => {
   const [hideZeroDepreciation, setHideZeroDepreciation] = useState(false);
 
   // 7 frozen columns (added Qty)
-  const stickyCols = [170, 120, 85, 45, 65, 120, 120];
+  const stickyCols = [170, 120, 85, 45, 100, 120, 120];
   const leftOffsets = stickyCols.reduce((acc, w, i) => {
     acc.push(i === 0 ? 0 : acc[i - 1] + stickyCols[i - 1]);
     return acc;

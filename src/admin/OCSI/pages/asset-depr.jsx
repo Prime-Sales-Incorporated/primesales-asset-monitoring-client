@@ -56,7 +56,7 @@ const OCSIAssetDepreciationDashboard = () => {
   const [hideZeroDepreciation, setHideZeroDepreciation] = useState(false);
 
   // 7 frozen columns
-  const stickyCols = [170, 120, 85, 45, 65, 120, 120];
+  const stickyCols = [170, 120, 85, 45, 100, 120, 120];
   const leftOffsets = stickyCols.reduce((acc, w, i) => {
     acc.push(i === 0 ? 0 : acc[i - 1] + stickyCols[i - 1]);
     return acc;
@@ -703,7 +703,7 @@ const OCSIAssetDepreciationDashboard = () => {
                               {asset.lifeSpan}
                             </td>
                             <td
-                              className="sticky z-20 bg-white dark:bg-slate-800 px-4 py-3 font-medium text-[10px] text-slate-800"
+                              className="sticky z-20 bg-white dark:bg-slate-800 px-8 py-3 font-medium text-[10px] text-slate-800"
                               style={stickyTd(5)}
                             >
                               {formatMoney(totalAssetCost)}
@@ -772,7 +772,7 @@ const OCSIAssetDepreciationDashboard = () => {
                       style={stickyTd(4)}
                     />
                     <td
-                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3 text-right text-[10px] font-extrabold text-slate-800 dark:text-slate-100"
+                      className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-8 py-3 text-right text-[10px] font-extrabold text-slate-800 dark:text-slate-100"
                       style={stickyTd(5)}
                     >
                       {formatMoney(totalCost)}
