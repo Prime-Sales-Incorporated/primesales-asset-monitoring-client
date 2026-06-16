@@ -74,37 +74,72 @@ export const getMonthlySchedule = (asset) => {
 // Calendar year: the year of the entry is always the calendar year
 export const getFiscalYearLabel = (year, month) => year;
 
+// Returns the ending NBV after the given fiscal year + quarter.
+// quarter = "ALL" means end of full year; otherwise 1–4.
 export const getNBVForPeriod = (asset, fiscalYear, quarter = "ALL") => {
   const schedule = getMonthlySchedule(asset);
   const cost = Number(asset.assetCost) || 0;
 
   let accumulatedDep = 0;
-  schedule.forEach((s) => {
-    const fy = getFiscalYearLabel(s.year, s.month);
-    if (quarter === "ALL") {
+
+  if (quarter === "ALL") {
+    schedule.forEach((s) => {
+      const fy = getFiscalYearLabel(s.year, s.month);
       if (fy <= fiscalYear) accumulatedDep += s.dep;
-    } else {
-      const qMonths = quarterMap[quarter];
-      if (fy < fiscalYear || (fy === fiscalYear && qMonths.includes(s.month))) {
+    });
+  } else {
+    // Include all months up to and including the last month of the selected quarter.
+    // e.g. Q2 → lastMonth = 5 (Jun), so Jan–Jun of fiscalYear are all included.
+    const qMonths = quarterMap[quarter];
+    const lastMonthOfQuarter = qMonths[qMonths.length - 1];
+
+    schedule.forEach((s) => {
+      const fy = getFiscalYearLabel(s.year, s.month);
+      if (
+        fy < fiscalYear ||
+        (fy === fiscalYear && s.month <= lastMonthOfQuarter)
+      ) {
         accumulatedDep += s.dep;
       }
-    }
-  });
+    });
+  }
 
   return Math.max(cost - accumulatedDep, 0);
 };
 
-export const getBeginningNBV = (asset, fiscalYear) => {
+// Returns the beginning NBV for the given fiscal year + quarter.
+// When quarter is null/"ALL" → beginning of the fiscal year (end of prev year).
+// When quarter is 1–4     → end of the previous quarter (or end of prev year for Q1).
+export const getBeginningNBV = (asset, fiscalYear, quarter = null) => {
   const schedule = getMonthlySchedule(asset);
   const cost = Number(asset.assetCost) || 0;
-  let accumulatedBeforeYear = 0;
+  let accumulated = 0;
 
-  schedule.forEach((s) => {
-    const fy = getFiscalYearLabel(s.year, s.month);
-    if (fy < fiscalYear) accumulatedBeforeYear += s.dep;
-  });
+  if (!quarter || quarter === "ALL") {
+    // Everything before this fiscal year
+    schedule.forEach((s) => {
+      const fy = getFiscalYearLabel(s.year, s.month);
+      if (fy < fiscalYear) accumulated += s.dep;
+    });
+  } else {
+    // Include everything before fiscalYear PLUS all months in fiscalYear
+    // that come BEFORE this quarter's first month.
+    // e.g. Q2 → firstMonth = 3 (Apr), so Jan–Mar of fiscalYear are included.
+    const qMonths = quarterMap[quarter];
+    const firstMonthOfQuarter = qMonths[0];
 
-  return Math.max(cost - accumulatedBeforeYear, 0);
+    schedule.forEach((s) => {
+      const fy = getFiscalYearLabel(s.year, s.month);
+      if (
+        fy < fiscalYear ||
+        (fy === fiscalYear && s.month < firstMonthOfQuarter)
+      ) {
+        accumulated += s.dep;
+      }
+    });
+  }
+
+  return Math.max(cost - accumulated, 0);
 };
 
 export const getScheduleForQuarter = (schedule, fiscalYear, quarter) => {

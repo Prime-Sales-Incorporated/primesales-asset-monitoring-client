@@ -144,16 +144,21 @@ const OCSIAssetDepreciationDashboard = () => {
       ? fiscalMonths
       : quarterMap[selectedQuarter];
 
+  // Derive the quarter number to pass to helpers (null when "ALL")
+  const quarterNum = selectedQuarter === "ALL" ? null : Number(selectedQuarter);
+
   // 3. Build row data — multiply all monetary values by qty
   const rowData = groupedAssets.map((asset) => {
     const { qty = 1 } = asset;
     const schedule = getMonthlySchedule(asset);
 
-    const unitBeginningNBV = getBeginningNBV(asset, selectedYear);
+    // ── KEY FIX: pass quarterNum so Beg. NBV reflects end of previous quarter ──
+    const unitBeginningNBV = getBeginningNBV(asset, selectedYear, quarterNum);
+
     const unitEndingNBV = getNBVForPeriod(
       asset,
       selectedYear,
-      selectedQuarter === "ALL" ? "ALL" : Number(selectedQuarter),
+      selectedQuarter === "ALL" ? "ALL" : quarterNum,
     );
 
     const unitDeps = showFullLife
@@ -165,11 +170,7 @@ const OCSIAssetDepreciationDashboard = () => {
         })
       : selectedQuarter === "ALL"
         ? getScheduleForFiscalYear(schedule, selectedYear)
-        : getScheduleForQuarter(
-            schedule,
-            selectedYear,
-            Number(selectedQuarter),
-          );
+        : getScheduleForQuarter(schedule, selectedYear, quarterNum);
 
     const beginningNBV = unitBeginningNBV * qty;
     const endingNBV = unitEndingNBV * qty;
@@ -206,6 +207,13 @@ const OCSIAssetDepreciationDashboard = () => {
   const monthlyTotals = Array.from({ length: colCount }, (_, i) =>
     visibleRowData.reduce((sum, r) => sum + (r.deps[i] || 0), 0),
   );
+
+  // ── Summary card label: changes based on quarter selection ──────────────
+  const begBalLabel = quarterNum
+    ? `Beg. Bal. as of end of Q${quarterNum - 1 || 4} ${
+        quarterNum === 1 ? selectedYear - 1 : selectedYear
+      }`
+    : `Beg. Bal. as of Dec 31, ${selectedYear - 1}`;
 
   const exportToExcel = async () => {
     const workbook = new ExcelJS.Workbook();
@@ -500,11 +508,11 @@ const OCSIAssetDepreciationDashboard = () => {
 
             {/* Summary cards */}
             <div className="col-span-12 md:col-span-4 flex flex-col gap-2">
-              {/* Beg Bal as of Dec 31 previous year */}
+              {/* Beg Bal — label updates based on quarter */}
               <div className="bg-indigo-50 px-4 py-2 rounded-lg border border-indigo-100 flex justify-between items-center">
                 <div>
                   <p className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest mb-0.5">
-                    Beg. Bal. as of Dec 31, {selectedYear - 1}
+                    {begBalLabel}
                   </p>
                   <h3 className="text-base font-extrabold text-indigo-800">
                     {formatMoney(totalBegNBV)}

@@ -15,6 +15,11 @@ export const months = [
   "Dec",
 ];
 
+// Fiscal year starts June (month 5).
+// Q1: Jun Jul Aug  (months 5,6,7)
+// Q2: Sep Oct Nov  (months 8,9,10)
+// Q3: Dec Jan Feb  (months 11,0,1)  ← wraps across calendar year
+// Q4: Mar Apr May  (months 2,3,4)
 export const quarterMap = {
   1: [5, 6, 7],
   2: [8, 9, 10],
@@ -71,40 +76,88 @@ export const getMonthlySchedule = (asset) => {
   return schedule;
 };
 
+// Fiscal year label: Jun–Dec of `year` belongs to FY `year`; Jan–May of `year` belongs to FY `year-1`.
 export const getFiscalYearLabel = (year, month, fiscalStartMonth = 5) =>
   month >= fiscalStartMonth ? year : year - 1;
 
+// ─── Internal helpers ────────────────────────────────────────────────────────
+
+// Fiscal position index of a month within the fiscal year (0 = Jun, 11 = May).
+// Returns -1 if the month is not found (should never happen).
+const fiscalPos = (month) => fiscalMonths.indexOf(month);
+
+// Fiscal position of the LAST month of a quarter:
+// Q1 → 2 (Aug), Q2 → 5 (Nov), Q3 → 8 (Feb), Q4 → 11 (May)
+const lastPosOfQuarter = (quarter) =>
+  fiscalPos(quarterMap[quarter][quarterMap[quarter].length - 1]);
+
+// Fiscal position of the FIRST month of a quarter:
+// Q1 → 0 (Jun), Q2 → 3 (Sep), Q3 → 6 (Dec), Q4 → 9 (Mar)
+const firstPosOfQuarter = (quarter) => fiscalPos(quarterMap[quarter][0]);
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Returns ending NBV after the given fiscal year + quarter.
 export const getNBVForPeriod = (asset, fiscalYear, quarter = "ALL") => {
   const schedule = getMonthlySchedule(asset);
   const cost = Number(asset.assetCost) || 0;
-
   let accumulatedDep = 0;
-  schedule.forEach((s) => {
-    const fy = getFiscalYearLabel(s.year, s.month);
-    if (quarter === "ALL") {
+
+  if (quarter === "ALL") {
+    schedule.forEach((s) => {
+      const fy = getFiscalYearLabel(s.year, s.month);
       if (fy <= fiscalYear) accumulatedDep += s.dep;
-    } else {
-      const qMonths = quarterMap[quarter];
-      if (fy < fiscalYear || (fy === fiscalYear && qMonths.includes(s.month))) {
+    });
+  } else {
+    // Include all entries at or before the last fiscal-position of the selected quarter.
+    // Using fiscalPos avoids the calendar-year-wrap problem (e.g. Q3 spans Dec–Feb).
+    const lastPos = lastPosOfQuarter(quarter);
+
+    schedule.forEach((s) => {
+      const fy = getFiscalYearLabel(s.year, s.month);
+      if (fy < fiscalYear) {
         accumulatedDep += s.dep;
+      } else if (fy === fiscalYear) {
+        const pos = fiscalPos(s.month);
+        if (pos !== -1 && pos <= lastPos) accumulatedDep += s.dep;
       }
-    }
-  });
+    });
+  }
 
   return Math.max(cost - accumulatedDep, 0);
 };
 
-export const getBeginningNBV = (asset, fiscalYear) => {
+// Returns beginning NBV for the given fiscal year + quarter.
+// quarter = null / "ALL" → beginning of the fiscal year (= end of previous FY).
+// quarter = 1–4          → end of the previous quarter within the same FY.
+export const getBeginningNBV = (asset, fiscalYear, quarter = null) => {
   const schedule = getMonthlySchedule(asset);
   const cost = Number(asset.assetCost) || 0;
-  let accumulatedBeforeYear = 0;
+  let accumulated = 0;
 
-  schedule.forEach((s) => {
-    const fy = getFiscalYearLabel(s.year, s.month);
-    if (fy < fiscalYear) accumulatedBeforeYear += s.dep;
-  });
+  if (!quarter || quarter === "ALL") {
+    // Everything strictly before this fiscal year
+    schedule.forEach((s) => {
+      const fy = getFiscalYearLabel(s.year, s.month);
+      if (fy < fiscalYear) accumulated += s.dep;
+    });
+  } else {
+    // Everything before this fiscal year PLUS all months in this fiscal year
+    // that come BEFORE the first month of the selected quarter (by fiscal position).
+    const firstPos = firstPosOfQuarter(quarter);
 
-  return Math.max(cost - accumulatedBeforeYear, 0);
+    schedule.forEach((s) => {
+      const fy = getFiscalYearLabel(s.year, s.month);
+      if (fy < fiscalYear) {
+        accumulated += s.dep;
+      } else if (fy === fiscalYear) {
+        const pos = fiscalPos(s.month);
+        if (pos !== -1 && pos < firstPos) accumulated += s.dep;
+      }
+    });
+  }
+
+  return Math.max(cost - accumulated, 0);
 };
 
 export const getScheduleForQuarter = (schedule, fiscalYear, quarter) => {

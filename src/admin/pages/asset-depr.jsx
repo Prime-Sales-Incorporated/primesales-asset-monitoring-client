@@ -24,7 +24,6 @@ const groupAssets = (assets) => {
   const map = new Map();
 
   assets.forEach((asset) => {
-    // Normalise the key: trim name, strip time from date, round cost to 2dp
     const name = (asset.assetName || "").trim();
     const date = asset.purchaseDate
       ? new Date(asset.purchaseDate).toISOString().slice(0, 10)
@@ -35,7 +34,6 @@ const groupAssets = (assets) => {
     if (map.has(key)) {
       map.get(key).qty += 1;
     } else {
-      // Keep a single representative asset object; qty starts at 1
       map.set(key, { ...asset, qty: 1 });
     }
   });
@@ -59,7 +57,7 @@ const AssetDepreciationDashboard = () => {
   const [showCurrentFYOnly, setShowCurrentFYOnly] = useState(false);
   const [hideZeroDepreciation, setHideZeroDepreciation] = useState(false);
 
-  // 7 frozen columns (added Qty)
+  // 7 frozen columns
   const stickyCols = [170, 120, 85, 45, 100, 120, 120];
   const leftOffsets = stickyCols.reduce((acc, w, i) => {
     acc.push(i === 0 ? 0 : acc[i - 1] + stickyCols[i - 1]);
@@ -114,7 +112,7 @@ const AssetDepreciationDashboard = () => {
   const fiscalStart = new Date(selectedFiscalYear, 5, 1);
   const fiscalEnd = new Date(selectedFiscalYear + 1, 4, 31);
 
-  // 1. Filter raw assets first
+  // 1. Filter raw assets
   let filteredAssets = assets.filter((a) => {
     const categoryMatch =
       selectedCategory === "ALL" || a.category === selectedCategory;
@@ -147,17 +145,24 @@ const AssetDepreciationDashboard = () => {
       ? fiscalMonths
       : quarterMap[selectedQuarter];
 
+  // Derive quarter number (null when "ALL") — used consistently for both helpers
+  const quarterNum = selectedQuarter === "ALL" ? null : Number(selectedQuarter);
+
   // 3. Build row data — multiply all monetary values by qty
   const rowData = groupedAssets.map((asset) => {
     const { qty = 1 } = asset;
     const schedule = getMonthlySchedule(asset);
 
-    // Per-unit values
-    const unitBeginningNBV = getBeginningNBV(asset, selectedFiscalYear);
+    // ── KEY FIX: pass quarterNum so Beg. NBV reflects end of previous quarter ──
+    const unitBeginningNBV = getBeginningNBV(
+      asset,
+      selectedFiscalYear,
+      quarterNum,
+    );
     const unitEndingNBV = getNBVForPeriod(
       asset,
       selectedFiscalYear,
-      selectedQuarter === "ALL" ? "ALL" : Number(selectedQuarter),
+      quarterNum ?? "ALL",
     );
 
     const unitDeps = showFullLife
@@ -169,13 +174,8 @@ const AssetDepreciationDashboard = () => {
         })
       : selectedQuarter === "ALL"
         ? getScheduleForFiscalYear(schedule, selectedFiscalYear)
-        : getScheduleForQuarter(
-            schedule,
-            selectedFiscalYear,
-            Number(selectedQuarter),
-          );
+        : getScheduleForQuarter(schedule, selectedFiscalYear, quarterNum);
 
-    // Scale by qty
     const beginningNBV = unitBeginningNBV * qty;
     const endingNBV = unitEndingNBV * qty;
     const deps = unitDeps.map((d) => d * qty);
@@ -211,6 +211,20 @@ const AssetDepreciationDashboard = () => {
   const monthlyTotals = Array.from({ length: colCount }, (_, i) =>
     visibleRowData.reduce((sum, r) => sum + (r.deps[i] || 0), 0),
   );
+
+  // ── Summary card label updates based on quarter ──────────────────────────
+  // Q1 beg = May 31 of selectedFiscalYear (end of prev FY)
+  // Q2 beg = end of Q1 (Aug 31)
+  // Q3 beg = end of Q2 (Nov 30)
+  // Q4 beg = end of Q3 (Feb 28/29)
+  const quarterEndLabels = {
+    null: `May 31, ${selectedFiscalYear}`,
+    1: `Aug 31, ${selectedFiscalYear}`,
+    2: `Nov 30, ${selectedFiscalYear}`,
+    3: `Feb 28, ${selectedFiscalYear + 1}`,
+    4: `May 31, ${selectedFiscalYear + 1}`,
+  };
+  const begBalLabel = `Beg. Bal. as of ${quarterEndLabels[quarterNum] ?? `May 31, ${selectedFiscalYear}`}`;
 
   const exportToExcel = async () => {
     const workbook = new ExcelJS.Workbook();
@@ -255,7 +269,7 @@ const AssetDepreciationDashboard = () => {
       20,
       12,
       12,
-      6, // Qty
+      6,
       8,
       20,
       18,
@@ -348,7 +362,7 @@ const AssetDepreciationDashboard = () => {
       new Blob([buffer]),
       showFullLife
         ? "AssetDepreciation_FullLifespan.xlsx"
-        : `AssetDepreciation_${selectedFiscalYear}_${selectedQuarter}.xlsx`,
+        : `AssetDepreciation_FY${selectedFiscalYear}_${selectedQuarter}.xlsx`,
     );
   };
 
@@ -507,11 +521,11 @@ const AssetDepreciationDashboard = () => {
 
             {/* Summary cards */}
             <div className="col-span-12 md:col-span-4 flex flex-col gap-2">
-              {/* Beg Bal as of May 31 */}
+              {/* Beg Bal — label updates based on quarter */}
               <div className="bg-indigo-50 px-4 py-2 rounded-lg border border-indigo-100 flex justify-between items-center">
                 <div>
                   <p className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest mb-0.5">
-                    Beg. Bal. as of May 31, {selectedFiscalYear}
+                    {begBalLabel}
                   </p>
                   <h3 className="text-base font-extrabold text-indigo-800">
                     {formatMoney(totalBegNBV)}
@@ -592,7 +606,6 @@ const AssetDepreciationDashboard = () => {
                         {dateSortOrder === "desc" && <FaArrowDown />}
                       </div>
                     </th>
-                    {/* NEW: Qty column */}
                     <th
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-2 py-3 text-center text-[10px] font-bold text-on-surface-variant uppercase tracking-widest"
                       style={stickyTh(3)}
@@ -692,7 +705,6 @@ const AssetDepreciationDashboard = () => {
                                   ).toLocaleDateString("en-PH")
                                 : "-"}
                             </td>
-                            {/* Qty cell */}
                             <td
                               className="sticky z-20 bg-white dark:bg-slate-800 px-2 py-3 text-center text-[10px] font-bold text-amber-600"
                               style={stickyTd(3)}
@@ -767,7 +779,6 @@ const AssetDepreciationDashboard = () => {
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-4 py-3"
                       style={stickyTd(2)}
                     />
-                    {/* Total qty */}
                     <td
                       className="sticky z-30 bg-slate-100 dark:bg-slate-700 px-2 py-3 text-center text-[10px] font-extrabold text-amber-700 dark:text-amber-300"
                       style={stickyTd(3)}
