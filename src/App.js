@@ -35,6 +35,7 @@ import SidebarOCSI from "./user/components/OCSIsidebar";
 import OCSIAssetInventory from "./admin/OCSI/pages/inventory-revamp";
 import OCSIRentalsDashboard from "./admin/OCSI/pages/rentals";
 import OCSIRegisterAsset from "./admin/OCSI/pages/asset-add";
+import OCSIReportGenerator from "./admin/OCSI/pages/reports/depreciation-report";
 
 function AppLayout() {
   const location = useLocation();
@@ -193,6 +194,7 @@ function AppLayout() {
                 </PrivateRoute>
               }
             />
+
             <Route
               path="/reports"
               element={
@@ -246,6 +248,7 @@ function AppLayout() {
                 </PrivateRoute>
               }
             />
+
             <Route
               path="/ocsi/depreciation"
               element={

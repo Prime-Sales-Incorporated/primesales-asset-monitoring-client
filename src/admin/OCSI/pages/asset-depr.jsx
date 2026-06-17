@@ -16,6 +16,7 @@ import {
   fiscalMonths,
   quarterMap,
 } from "../../../helpers/OCSIdepreciationHelper";
+import OCSIQuarterlyReportButton from "./reports/depreciation-report";
 
 // ─── Grouping helper ────────────────────────────────────────────────────────
 // Assets with the same name, purchaseDate, and assetCost are collapsed into one
@@ -412,7 +413,6 @@ const OCSIAssetDepreciationDashboard = () => {
                     ))}
                   </select>
                 </div>
-
                 <div>
                   <label className="text-[10px] font-bold block text-on-surface-variant uppercase tracking-widest">
                     Period
@@ -430,7 +430,6 @@ const OCSIAssetDepreciationDashboard = () => {
                     ))}
                   </select>
                 </div>
-
                 <div>
                   <label className="text-[10px] block font-bold text-on-surface-variant uppercase tracking-widest">
                     Asset Category
@@ -445,7 +444,6 @@ const OCSIAssetDepreciationDashboard = () => {
                     ))}
                   </select>
                 </div>
-
                 <div>
                   <label className="text-[10px] font-bold block text-on-surface-variant uppercase tracking-widest">
                     Purchased Year
@@ -466,7 +464,6 @@ const OCSIAssetDepreciationDashboard = () => {
                     ))}
                   </select>
                 </div>
-
                 <label className="text-xs gap-1.5 flex items-center font-semibold text-slate-700">
                   <input
                     type="checkbox"
@@ -476,7 +473,6 @@ const OCSIAssetDepreciationDashboard = () => {
                   />
                   Show Full Lifespan
                 </label>
-
                 <label className="text-xs gap-1.5 flex items-center font-semibold text-slate-700">
                   <input
                     type="checkbox"
@@ -486,7 +482,6 @@ const OCSIAssetDepreciationDashboard = () => {
                   />
                   Purchased this Year
                 </label>
-
                 <label className="text-xs gap-1.5 flex items-center font-semibold text-slate-700">
                   <input
                     type="checkbox"
@@ -496,13 +491,19 @@ const OCSIAssetDepreciationDashboard = () => {
                   />
                   Hide Zero Depreciation
                 </label>
-
                 <button
                   onClick={exportToExcel}
                   className="ml-auto bg-emerald-600 text-white px-3 py-1 text-xs rounded-lg hover:bg-emerald-700 transition"
                 >
                   Export to Excel
                 </button>
+                jsx
+                <OCSIQuarterlyReportButton
+                  assets={assets}
+                  selectedYear={selectedYear}
+                  selectedQuarter={selectedQuarter}
+                  selectedCategory={selectedCategory}
+                />
               </div>
             </div>
 
