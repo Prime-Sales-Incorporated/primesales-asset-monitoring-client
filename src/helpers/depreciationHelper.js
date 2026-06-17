@@ -80,20 +80,20 @@ export const getMonthlySchedule = (asset) => {
 export const getFiscalYearLabel = (year, month, fiscalStartMonth = 5) =>
   month >= fiscalStartMonth ? year : year - 1;
 
-// ─── Internal helpers ────────────────────────────────────────────────────────
+// ─── Fiscal position helpers (EXPORTED so QuarterlyReportButton can reuse them) ─
 
 // Fiscal position index of a month within the fiscal year (0 = Jun, 11 = May).
 // Returns -1 if the month is not found (should never happen).
-const fiscalPos = (month) => fiscalMonths.indexOf(month);
+export const fiscalPos = (month) => fiscalMonths.indexOf(month);
 
 // Fiscal position of the LAST month of a quarter:
 // Q1 → 2 (Aug), Q2 → 5 (Nov), Q3 → 8 (Feb), Q4 → 11 (May)
-const lastPosOfQuarter = (quarter) =>
+export const lastPosOfQuarter = (quarter) =>
   fiscalPos(quarterMap[quarter][quarterMap[quarter].length - 1]);
 
 // Fiscal position of the FIRST month of a quarter:
 // Q1 → 0 (Jun), Q2 → 3 (Sep), Q3 → 6 (Dec), Q4 → 9 (Mar)
-const firstPosOfQuarter = (quarter) => fiscalPos(quarterMap[quarter][0]);
+export const firstPosOfQuarter = (quarter) => fiscalPos(quarterMap[quarter][0]);
 
 // ─────────────────────────────────────────────────────────────────────────────
 

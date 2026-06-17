@@ -16,6 +16,7 @@ import {
   fiscalMonths,
   quarterMap,
 } from "../../helpers/depreciationHelper";
+import QuarterlyReportButton from "./reports/depreciation-report";
 
 // ─── Grouping helper ────────────────────────────────────────────────────────
 // Assets with the same name, purchaseDate, and assetCost are collapsed into one
@@ -219,10 +220,10 @@ const AssetDepreciationDashboard = () => {
   // Q4 beg = end of Q3 (Feb 28/29)
   const quarterEndLabels = {
     null: `May 31, ${selectedFiscalYear}`,
-    1: `Aug 31, ${selectedFiscalYear}`,
-    2: `Nov 30, ${selectedFiscalYear}`,
-    3: `Feb 28, ${selectedFiscalYear + 1}`,
-    4: `May 31, ${selectedFiscalYear + 1}`,
+    1: `May 31, ${selectedFiscalYear}`,
+    2: `Aug 31, ${selectedFiscalYear}`,
+    3: `Nov 30, ${selectedFiscalYear}`,
+    4: `Feb 28, ${selectedFiscalYear + 1}`,
   };
   const begBalLabel = `Beg. Bal. as of ${quarterEndLabels[quarterNum] ?? `May 31, ${selectedFiscalYear}`}`;
 
@@ -516,6 +517,11 @@ const AssetDepreciationDashboard = () => {
                 >
                   Export to Excel
                 </button>
+                <QuarterlyReportButton
+                  rowData={visibleRowData}
+                  selectedFiscalYear={selectedFiscalYear}
+                  selectedQuarter={selectedQuarter}
+                />
               </div>
             </div>
 
