@@ -498,10 +498,9 @@ const OCSIAssetDepreciationDashboard = () => {
                   Export to Excel
                 </button>
                 <OCSIQuarterlyReportButton
-                  assets={assets}
+                  rowData={visibleRowData}
                   selectedYear={selectedYear}
                   selectedQuarter={selectedQuarter}
-                  selectedCategory={selectedCategory}
                 />
               </div>
             </div>

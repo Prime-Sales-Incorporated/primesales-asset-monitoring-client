@@ -113,11 +113,11 @@ const getBucket = (category) => {
 };
 
 // ── Main component ────────────────────────────────────────────────────────────
+
 const QuarterlyReportButton = ({
-  assets = [],
+  rowData = [],
   selectedFiscalYear,
   selectedQuarter,
-  selectedCategory = "ALL",
 }) => {
   const [loading, setLoading] = useState(false);
 
@@ -130,37 +130,25 @@ const QuarterlyReportButton = ({
 
     try {
       const qStr = String(selectedQuarter);
-      const qNum = Number(qStr); // 1 | 2 | 3 | 4
+      const qNum = Number(qStr);
       const qCfg = FY_QUARTERS[qStr];
       if (!qCfg) return;
 
-      const fy = Number(selectedFiscalYear); // e.g. 2026 → FY 2026-2027
+      const fy = Number(selectedFiscalYear);
+      const qFirstFiscalPos = firstPosOfQuarter(qNum);
+      const qLastFiscalPos = lastPosOfQuarter(qNum);
 
-      // Calendar year + month for each month of this quarter (used for dep lookup)
       const qMonths = qCfg.monthDefs.map((d) => ({
         calYear: fy + d.yearOffset,
         month: d.month,
       }));
 
-      // Fiscal position boundaries for this quarter
-      const qFirstFiscalPos = firstPosOfQuarter(qNum);
-      const qLastFiscalPos = lastPosOfQuarter(qNum);
-
-      // ── 1. Filter assets ────────────────────────────────────────────────
-      const filtered = assets.filter((a) => {
-        if (!a.purchaseDate || !a.assetCost || !a.lifeSpan) return false;
-        if (selectedCategory !== "ALL") {
-          return (a.category || "").trim() === selectedCategory.trim();
-        }
-        return true;
-      });
-
-      // ── 2. Aggregate into 3 buckets ─────────────────────────────────────
       const zero = () => ({
         lifetimeCostBeg: 0,
         additions: 0,
         accumDepBeg: 0,
         dep: [0, 0, 0],
+        endingNBV: 0,
       });
       const buckets = {
         "Office Equipments": zero(),
@@ -168,66 +156,49 @@ const QuarterlyReportButton = ({
         "Rental Equipments": zero(),
       };
 
-      filtered.forEach((asset) => {
-        // getBucket now always returns a valid bucket (never null)
+      // Re-bucket the SAME rows the dashboard already computed and displayed —
+      // no separate NBV/depreciation math here, so this can't drift from the screen.
+      rowData.forEach(({ asset, beginningNBV, endingNBV, deps }) => {
         const bucket = getBucket(asset.category);
-        const cost = Number(asset.assetCost) || 0;
-        const schedule = getMonthlySchedule(asset);
+        const qty = asset.qty || 1;
+        const cost = (Number(asset.assetCost) || 0) * qty;
 
-        // ── Purchase date fiscal classification ──────────────────────────
         const purchase = new Date(asset.purchaseDate);
-        const pCY = purchase.getFullYear();
-        const pMonth = purchase.getMonth(); // 0-based
-        const pFY = getFiscalYearLabel(pCY, pMonth);
-        const pFiscalPos = fiscalPos(pMonth);
+        const pFY = getFiscalYearLabel(
+          purchase.getFullYear(),
+          purchase.getMonth(),
+        );
+        const pPos = fiscalPos(purchase.getMonth());
 
-        // Purchased BEFORE this quarter's start (including prior fiscal years)
         const purchasedBeforeQStart =
-          pFY < fy || (pFY === fy && pFiscalPos < qFirstFiscalPos);
-
-        // Purchased DURING this quarter
+          pFY < fy || (pFY === fy && pPos < qFirstFiscalPos);
         const purchasedInQuarter =
-          pFY === fy &&
-          pFiscalPos >= qFirstFiscalPos &&
-          pFiscalPos <= qLastFiscalPos;
+          pFY === fy && pPos >= qFirstFiscalPos && pPos <= qLastFiscalPos;
 
         if (purchasedBeforeQStart) buckets[bucket].lifetimeCostBeg += cost;
         if (purchasedInQuarter) buckets[bucket].additions += cost;
 
-        // ── Accumulated depreciation at START of this quarter ────────────
-        // Delegates to the same helper the dashboard uses — results always match.
-        const beginningNBV = getBeginningNBV(asset, fy, qNum);
-        const accumDepAtStart = Math.max(cost - beginningNBV, 0);
-        buckets[bucket].accumDepBeg += accumDepAtStart;
+        buckets[bucket].accumDepBeg += Math.max(cost - beginningNBV, 0);
+        buckets[bucket].endingNBV += endingNBV;
 
-        // ── Monthly dep for each of the 3 months in this quarter ─────────
-        // Matched by fiscal year label + month — identical to getScheduleForQuarter.
-        qMonths.forEach(({ month }, i) => {
-          const entry = schedule.find(
-            (s) =>
-              getFiscalYearLabel(s.year, s.month) === fy && s.month === month,
-          );
-          buckets[bucket].dep[i] += entry ? entry.dep : 0;
+        deps.forEach((d, i) => {
+          buckets[bucket].dep[i] += d || 0;
         });
       });
 
-      // ── 3. Derived totals ────────────────────────────────────────────────
       const lifetimeCostEnd = (bk) =>
         buckets[bk].lifetimeCostBeg + buckets[bk].additions;
-
       const accumDepEnd = (bk) =>
         buckets[bk].accumDepBeg +
         buckets[bk].dep[0] +
         buckets[bk].dep[1] +
         buckets[bk].dep[2];
-
-      const nbv = (bk) => Math.max(lifetimeCostEnd(bk) - accumDepEnd(bk), 0);
+      const nbv = (bk) => buckets[bk].endingNBV; // pulled straight from the dashboard's own total
 
       const totalDepArr = [0, 1, 2].map((i) =>
         BUCKET_LABELS.reduce((s, bk) => s + buckets[bk].dep[i], 0),
       );
 
-      // ── 4. Month label strings for dep rows ─────────────────────────────
       const lastDaysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
       const qMonthLabels = qMonths.map(({ calYear, month }) => {
         const d = lastDaysInMonth[month];
