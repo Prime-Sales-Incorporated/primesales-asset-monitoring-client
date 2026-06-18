@@ -95,10 +95,10 @@ const SidebarOCSI = ({ mobile = false, isOpen = false, onClose }) => {
             />
           </div>
           <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-medium text-white truncate">
-              Alex Johnson
+            <p className="text-[10px] font-medium text-white truncate">
+              Kenneth Pogi
             </p>
-            <p className="text-xs text-slate-500 truncate">Admin Account</p>
+            <p className="text-[8px] text-slate-500 truncate">Admin Account</p>
           </div>
           <button
             onClick={handleLogout}
