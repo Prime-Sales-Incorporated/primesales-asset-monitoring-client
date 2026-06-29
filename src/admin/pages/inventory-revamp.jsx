@@ -16,7 +16,7 @@ const categoryIcons = {
   Misc: "📦",
   Uncategorized: "❓",
   "Building Imp": "🏢",
-  Unit: "/forklift1.png",
+  "Rental Eqpt": "/forklift1.png",
 };
 
 const statusColors = {
@@ -45,7 +45,7 @@ const KNOWN_CATEGORIES = [
   "Tools",
   "Misc",
   "Building Imp",
-  "Units",
+  "Rental Eqpt",
 ];
 
 const AssetInventory = () => {

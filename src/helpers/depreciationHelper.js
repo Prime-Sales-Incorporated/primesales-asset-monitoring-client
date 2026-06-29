@@ -41,28 +41,38 @@ export const getMonthlySchedule = (asset) => {
   const standardMonthly = cost / life;
   const dailyRate = standardMonthly / 30;
 
+  // Round the standard monthly ONCE — all full months use this value.
+  // This prevents accumulated drift between raw floats and rounded entries.
+  const roundedMonthly = Number(standardMonthly.toFixed(2));
+
   let schedule = [];
+  // accumulated now tracks the SUM OF ROUNDED values, eliminating float drift.
   let accumulated = 0;
   let month = purchase.getMonth();
   let year = purchase.getFullYear();
 
-  // First partial month
+  // First partial month — prorated from purchase day to end of month
   const firstMonthDep = Number(
     (dailyRate * (30 - purchase.getDate() + 1)).toFixed(2),
   );
   schedule.push({ year, month, dep: firstMonthDep });
   accumulated += firstMonthDep;
 
-  while (accumulated + standardMonthly < cost) {
+  // Add full monthly entries as long as another full rounded installment fits.
+  // Use 0.005 epsilon to guard against floating-point edge cases producing
+  // a near-zero ghost entry at the end.
+  while (accumulated + roundedMonthly <= cost - 0.005) {
     month++;
     if (month > 11) {
       month = 0;
       year++;
     }
-    schedule.push({ year, month, dep: Number(standardMonthly.toFixed(2)) });
-    accumulated += standardMonthly;
+    schedule.push({ year, month, dep: roundedMonthly });
+    accumulated += roundedMonthly;
   }
 
+  // Final entry: exact remainder so total depreciation == assetCost exactly.
+  // This ensures NBV reaches 0.00 with no leftover cents.
   const remaining = Number((cost - accumulated).toFixed(2));
   if (remaining > 0) {
     month++;
