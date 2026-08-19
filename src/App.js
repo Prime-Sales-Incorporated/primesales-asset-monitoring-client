@@ -36,6 +36,7 @@ import OCSIAssetInventory from "./admin/OCSI/pages/inventory-revamp";
 import OCSIRentalsDashboard from "./admin/OCSI/pages/rentals";
 import OCSIRegisterAsset from "./admin/OCSI/pages/asset-add";
 import OCSIReportGenerator from "./admin/OCSI/pages/reports/depreciation-report";
+import OCSITrackAudit from "./admin/OCSI/pages/rentals/rental-auditpage";
 
 function AppLayout() {
   const location = useLocation();
@@ -175,6 +176,14 @@ function AppLayout() {
               element={
                 <PrivateRoute>
                   <PrimeTrackAudit />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/ocsi/assets/rentals/details/:serialNumber"
+              element={
+                <PrivateRoute>
+                  <OCSITrackAudit />
                 </PrivateRoute>
               }
             />
