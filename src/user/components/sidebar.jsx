@@ -65,7 +65,7 @@ const Sidebar = ({ mobile = false, isOpen = false, onClose }) => {
             <span className="font-medium text-sm">{item.label}</span>
           </Link>
         ))}
-      </nav>
+      </nav>n[m ]
 
       {/* User Card */}
       <div className="p-4 border-t border-slate-800">
