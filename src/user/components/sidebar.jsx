@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 
-const Sidebar = ({ mobile = false, isOpen = false, onClose }) => {
+const Sidebar = ({ mobile = false, onClose }) => {
   const location = useLocation();
   const currentPath = location.pathname;
 
@@ -15,13 +15,7 @@ const Sidebar = ({ mobile = false, isOpen = false, onClose }) => {
     <aside
       className={`
         bg-slate-950 text-slate-300 flex flex-col
-        ${
-          mobile
-            ? `fixed top-0 left-0 min-h-screen  z-50 transform transition-transform duration-300 ${
-                isOpen ? "translate-x-0" : "-translate-x-full"
-              }`
-            : "w-48 min-h-screen shrink-0"
-        }
+        ${mobile ? "w-48 h-full" : "w-48 min-h-screen shrink-0"}
       `}
     >
       {/* Logo */}
@@ -65,7 +59,7 @@ const Sidebar = ({ mobile = false, isOpen = false, onClose }) => {
             <span className="font-medium text-sm">{item.label}</span>
           </Link>
         ))}
-      </nav>n[m ]
+      </nav>
 
       {/* User Card */}
       <div className="p-4 border-t border-slate-800">
