@@ -1,14 +1,20 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const Sidebar = ({ mobile = false, onClose }) => {
   const location = useLocation();
   const currentPath = location.pathname;
-
+  const navigate = useNavigate();
   const isActive = (path) => currentPath === path;
 
   const handleClick = () => {
     if (mobile && onClose) onClose();
+  };
+
+  const handleLogout = () => {
+    // localStorage.removeItem("userToken");
+    // localStorage.removeItem("userInfo");
+    navigate("/tenant");
   };
 
   return (
@@ -76,7 +82,10 @@ const Sidebar = ({ mobile = false, onClose }) => {
             </p>
             <p className="text-[8px ] text-slate-500 truncate">Admin Account</p>
           </div>
-          <button className="text-slate-500 hover:text-white">
+          <button
+            onClick={handleLogout}
+            className="text-slate-500 hover:text-white"
+          >
             <span className="material-icons-outlined text-sm">logout</span>
           </button>
         </div>

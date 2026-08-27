@@ -326,7 +326,6 @@ const RegisterAsset = () => {
               id="lifepan"
               type="number"
               inputMode="numeric"
-              min={1}
               required
               placeholder="e.g. 60"
               className="w-full px-3 py-2 border rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-slate-400 dark:placeholder-slate-500"
