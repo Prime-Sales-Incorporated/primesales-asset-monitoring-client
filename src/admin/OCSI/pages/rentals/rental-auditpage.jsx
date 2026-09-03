@@ -112,7 +112,7 @@ function useAuditForm(AUDIT_STRUCTURE, unitId) {
         formData.append("photos", blob, `photo-${i}.jpg`);
       });
 
-      const res = await fetch(`${API_BASE_URL}/api/audit`, {
+      const res = await fetch(`${API_BASE_URL}/api/OCSI/audit`, {
         method: "POST",
         body: formData, // ✅ no JSON.stringify, no Content-Type
       });
@@ -170,7 +170,7 @@ export default function OCSITrackAudit() {
     const fetchHistory = async () => {
       try {
         const res = await fetch(
-          `${API_BASE_URL}/api/audit/history/${serialNumber}`,
+          `${API_BASE_URL}/api/ocsi/audit/history/${serialNumber}`,
         );
         if (!res.ok) throw new Error("Failed to fetch history");
         const data = await res.json();

@@ -37,6 +37,7 @@ import OCSIRentalsDashboard from "./admin/OCSI/pages/rentals";
 import OCSIRegisterAsset from "./admin/OCSI/pages/asset-add";
 import OCSIReportGenerator from "./admin/OCSI/pages/reports/depreciation-report";
 import OCSITrackAudit from "./admin/OCSI/pages/rentals/rental-auditpage";
+import OCSIHybridQRScanner from "./admin/OCSI/pages/OCSI-Scanner";
 
 function AppLayout() {
   const location = useLocation();
@@ -74,23 +75,21 @@ function AppLayout() {
       )}
 
       {/* MOBILE SIDEBAR */}
+      {/* ActiveSidebar already handles its own fixed positioning, width,
+          transform, and backdrop when `mobile` is passed — wrapping it in
+          another fixed + translate-x container here creates a nested
+          transform context (any element with a `transform` becomes the
+          containing block for `position: fixed` descendants), which broke
+          the sidebar's own fixed positioning. Not passing `isOpen` also
+          meant the sidebar never actually knew it should be open. */}
       {!hideSidebar && (
-        <>
-          <div
-            className={`fixed top-0 left-0 h-full bg-slate-950 z-50 w-48 transition-transform duration-300 lg:hidden ${
-              sidebarOpen ? "translate-x-0" : "-translate-x-full"
-            }`}
-          >
-            <ActiveSidebar onClose={() => setSidebarOpen(false)} mobile />
-          </div>
-
-          {sidebarOpen && (
-            <div
-              className="fixed inset-0 bg-black/40 z-40 lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            />
-          )}
-        </>
+        <div className="lg:hidden">
+          <ActiveSidebar
+            mobile
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+          />
+        </div>
       )}
 
       {/* MAIN CONTENT */}
@@ -101,9 +100,9 @@ function AppLayout() {
             <button onClick={() => setSidebarOpen(true)} className="text-2xl">
               ☰
             </button>
-            <div className="h-10 w-28">
+            {/* <div className="h-10 w-28">
               <img src="/logo.png" alt="Logo" className="h-10" />
-            </div>
+            </div> */}
             <div className="w-6" />
           </div>
         )}
@@ -231,7 +230,7 @@ function AppLayout() {
             <Route
               path="/assets/add"
               element={
-                <PrivateRoute type="admin">
+                <PrivateRoute>
                   <RegisterAsset />
                 </PrivateRoute>
               }
@@ -271,7 +270,7 @@ function AppLayout() {
             <Route
               path="/ocsi/assets/add"
               element={
-                <PrivateRoute type="admin">
+                <PrivateRoute>
                   <OCSIRegisterAsset />
                 </PrivateRoute>
               }
@@ -344,7 +343,7 @@ function AppLayout() {
               path="/ocsi/scanner"
               element={
                 <PrivateRoute>
-                  <HybridQRScanner />
+                  <OCSIHybridQRScanner />
                 </PrivateRoute>
               }
             />

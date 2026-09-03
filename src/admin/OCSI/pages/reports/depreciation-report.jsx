@@ -130,9 +130,13 @@ const OCSIQuarterlyReportButton = ({
 
         const purchase = new Date(asset.purchaseDate);
         const pYear = purchase.getFullYear();
-        const pMonth = purchase.getMonth(); // 0-based
+        const pMonth = purchase.getMonth();
 
-        // Cost classification
+        // NEW: asset doesn't exist yet as of this quarter — exclude it entirely
+        const afterQEnd =
+          pYear > year || (pYear === year && pMonth > lastQMonth);
+        if (afterQEnd) return;
+
         const beforeQStart =
           pYear < year || (pYear === year && pMonth < firstQMonth);
         const inQuarter =
@@ -141,15 +145,12 @@ const OCSIQuarterlyReportButton = ({
         if (beforeQStart) b.lifetimeCostBeg += cost;
         if (inQuarter) b.additions += cost;
 
-        // Accumulated dep at start of this quarter = cost − beginningNBV
         b.accumDepBeg += Math.max(cost - beginningNBV, 0);
 
-        // Monthly dep — deps[] has exactly 3 entries when a quarter is selected
         deps.forEach((d, i) => {
           b.dep[i] += d || 0;
         });
 
-        // Ending NBV straight from the dashboard
         b.endingNBV += endingNBV;
       });
 

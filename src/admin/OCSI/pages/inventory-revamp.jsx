@@ -179,12 +179,20 @@ const OCSIAssetInventory = () => {
 
   const updateAsset = async () => {
     try {
+      // If category isn't Rental Eqpt, don't send stale unitLocation/rentPeriod
+      // values along with the update — let the backend clear them.
+      const payload = { ...editingAsset };
+      if (payload.category !== "Rental Eqpt") {
+        delete payload.unitLocation;
+        delete payload.rentPeriod;
+      }
+
       const res = await fetch(
         `${API_BASE_URL}/api/ocsi/asset/update/${editingAsset.serialNumber}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(editingAsset),
+          body: JSON.stringify(payload),
         },
       );
       const updated = await res.json();
@@ -466,17 +474,18 @@ const OCSIAssetInventory = () => {
       {/* ── CARD VIEW ── */}
       {view === "card" && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {assets.map((asset) => {
               const icon =
                 categoryIcons[asset.category] || categoryIcons["Uncategorized"];
+              const isRental = asset.category === "Rental Eqpt";
               return (
                 <div
                   key={asset._id}
                   className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-amber-300 transition-all"
                 >
-                  <div className="p-5">
-                    <div className="flex justify-between items-start mb-4">
+                  <div className="p-4">
+                    <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-3">
                         <div className="w-11 h-11 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center text-2xl overflow-hidden">
                           {icon.startsWith("/") || icon.startsWith("http") ? (
@@ -507,7 +516,11 @@ const OCSIAssetInventory = () => {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-y-3 text-sm mb-4">
+                    <p className="text-xs italic text-slate-500 text- dark:text-slate-400 leading-snug line-clamp-2 mb-3 -mt-1">
+                      {asset.description || "No description"}
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm mb-3">
                       {[
                         ["Serial #", asset.serialNumber || "-"],
                         ["Issued To", asset.issuedTo || "-"],
@@ -523,37 +536,52 @@ const OCSIAssetInventory = () => {
                             ? new Date(asset.issuedDate).toLocaleDateString()
                             : "-",
                         ],
+                        // Only relevant for Rental Eqpt — surfaces "N/A" from
+                        // the API so you can tell which rental assets still
+                        // need these two fields filled in.
+                        ...(isRental
+                          ? [
+                              ["Unit Location", asset.unitLocation || "N/A"],
+                              ["Rent Period", asset.rentPeriod || "N/A"],
+                            ]
+                          : []),
                       ].map(([label, val]) => (
                         <div key={label}>
-                          <p className="text-[10px] uppercase font-bold text-slate-400">
+                          <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">
                             {label}
                           </p>
-                          <p className="text-slate-700 dark:text-slate-200 text-xs">
+                          <p
+                            className={`text-xs leading-tight ${
+                              val === "N/A"
+                                ? "text-amber-600 dark:text-amber-400 font-semibold"
+                                : "text-slate-700 dark:text-slate-200"
+                            }`}
+                          >
                             {val}
                           </p>
                         </div>
                       ))}
                       <div>
-                        <p className="text-[10px] uppercase font-bold text-slate-400">
+                        <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">
                           Cost
                         </p>
-                        <p className="text-emerald-600 font-bold text-xs">
+                        <p className="text-emerald-600 font-bold text-xs leading-tight">
                           {asset.assetCost
                             ? `₱${Number(asset.assetCost).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`
                             : "-"}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase font-bold text-slate-400">
+                        <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">
                           Life Span
                         </p>
-                        <p className="text-xs">
+                        <p className="text-xs leading-tight">
                           {asset.lifeSpan ? `${asset.lifeSpan} mo.` : "-"}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-700 pt-3">
+                    <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-700 pt-2.5">
                       <div
                         className="cursor-pointer hover:opacity-75 transition"
                         onClick={() => setPreviewQR(qrValue(asset))}
@@ -638,6 +666,9 @@ const OCSIAssetInventory = () => {
                     "Asset Name",
                     "Serial #",
                     "Category",
+                    "Description",
+                    "Unit Location",
+                    "Rent Period",
                     "Status",
                     "Issued To",
                     "Purchase Date",
@@ -655,88 +686,130 @@ const OCSIAssetInventory = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                {assets.map((asset, idx) => (
-                  <tr
-                    key={asset._id}
-                    className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition ${
-                      idx % 2 === 1 ? "bg-slate-50/50 dark:bg-slate-800/50" : ""
-                    }`}
-                  >
-                    <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white min-w-[180px]">
-                      {asset.assetName}
-                    </td>
-                    <td className="px-4 py-3 text-slate-500">
-                      {asset.serialNumber || "-"}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
-                      {asset.category || "-"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex whitespace-nowrap px-2.5 py-1 text-[10.5px] font-semibold rounded-full ${
-                          statusColors[asset.status] || statusColors.Unknown
-                        }`}
-                      >
-                        {asset.status || "Unknown"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
-                      {asset.issuedTo || "-"}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
-                      {asset.purchaseDate
-                        ? new Date(asset.purchaseDate).toLocaleDateString(
-                            "en-PH",
-                          )
-                        : "-"}
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-emerald-600">
-                      {asset.assetCost
-                        ? `₱${Number(asset.assetCost).toLocaleString("en-PH", {
-                            minimumFractionDigits: 2,
-                          })}`
-                        : "-"}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
-                      {asset.lifeSpan ? `${asset.lifeSpan} mo.` : "-"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => setPreviewQR(qrValue(asset))}
-                          className="p-1.5 text-slate-400 hover:text-blue-600 transition rounded"
-                          title="View QR"
-                        >
-                          <span className="material-icons-round text-[16px]">
-                            qr_code
+                {assets.map((asset, idx) => {
+                  const isRental = asset.category === "Rental Eqpt";
+                  return (
+                    <tr
+                      key={asset._id}
+                      className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition ${
+                        idx % 2 === 1
+                          ? "bg-slate-50/50 dark:bg-slate-800/50"
+                          : ""
+                      }`}
+                    >
+                      <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white min-w-[180px]">
+                        {asset.assetName}
+                      </td>
+                      <td className="px-4 py-3 text-slate-500">
+                        {asset.serialNumber || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                        {asset.category || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-slate-500 max-w-[220px] truncate">
+                        {asset.description || "-"}
+                      </td>
+                      <td className="px-4 py-3">
+                        {isRental ? (
+                          <span
+                            className={
+                              !asset.unitLocation ||
+                              asset.unitLocation === "N/A"
+                                ? "text-amber-600 dark:text-amber-400 font-semibold"
+                                : "text-slate-700 dark:text-slate-300"
+                            }
+                          >
+                            {asset.unitLocation || "N/A"}
                           </span>
-                        </button>
-                        <button
-                          onClick={() => handleEdit(asset)}
-                          className="p-1.5 text-slate-400 hover:text-blue-600 transition rounded"
-                          title="Edit"
-                        >
-                          <span className="material-icons-round text-[16px]">
-                            edit
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {isRental ? (
+                          <span
+                            className={
+                              !asset.rentPeriod || asset.rentPeriod === "N/A"
+                                ? "text-amber-600 dark:text-amber-400 font-semibold"
+                                : "text-slate-700 dark:text-slate-300"
+                            }
+                          >
+                            {asset.rentPeriod || "N/A"}
                           </span>
-                        </button>
-                        <button
-                          onClick={() => handleDelete(asset.serialNumber)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 bg-red1 transition rounded"
-                          title="Delete"
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex whitespace-nowrap px-2.5 py-1 text-[10.5px] font-semibold rounded-full ${
+                            statusColors[asset.status] || statusColors.Unknown
+                          }`}
                         >
-                          <span className="material-icons-round bg-red1 text-[16px]">
-                            delete
-                          </span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          {asset.status || "Unknown"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                        {asset.issuedTo || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                        {asset.purchaseDate
+                          ? new Date(asset.purchaseDate).toLocaleDateString(
+                              "en-PH",
+                            )
+                          : "-"}
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-emerald-600">
+                        {asset.assetCost
+                          ? `₱${Number(asset.assetCost).toLocaleString(
+                              "en-PH",
+                              {
+                                minimumFractionDigits: 2,
+                              },
+                            )}`
+                          : "-"}
+                      </td>
+                      <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                        {asset.lifeSpan ? `${asset.lifeSpan} mo.` : "-"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => setPreviewQR(qrValue(asset))}
+                            className="p-1.5 text-slate-400 hover:text-blue-600 transition rounded"
+                            title="View QR"
+                          >
+                            <span className="material-icons-round text-[16px]">
+                              qr_code
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => handleEdit(asset)}
+                            className="p-1.5 text-slate-400 hover:text-blue-600 transition rounded"
+                            title="Edit"
+                          >
+                            <span className="material-icons-round text-[16px]">
+                              edit
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(asset.serialNumber)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 bg-red1 transition rounded"
+                            title="Delete"
+                          >
+                            <span className="material-icons-round bg-red1 text-[16px]">
+                              delete
+                            </span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {assets.length === 0 && !loading && (
                   <tr>
                     <td
-                      colSpan={9}
+                      colSpan={12}
                       className="text-center py-12 text-slate-400"
                     >
                       No assets match your filters.
@@ -871,6 +944,81 @@ const OCSIAssetInventory = () => {
                   <option>Retired</option>
                 </select>
               </div>
+
+              {/* Category — needed so unitLocation/rentPeriod know whether
+                  they're required, and so you can actually reclassify an
+                  asset into/out of Rental Eqpt. */}
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Category
+                </label>
+                <select
+                  value={editingAsset.category || ""}
+                  onChange={(e) =>
+                    setEditingAsset((prev) => ({
+                      ...prev,
+                      category: e.target.value,
+                    }))
+                  }
+                  className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select category</option>
+                  {KNOWN_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Only relevant (and only required by the backend) when
+                  category is Rental Eqpt. */}
+              {editingAsset.category === "Rental Eqpt" && (
+                <>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                      Unit Location
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Warehouse B"
+                      value={
+                        editingAsset.unitLocation === "N/A"
+                          ? ""
+                          : editingAsset.unitLocation || ""
+                      }
+                      onChange={(e) =>
+                        setEditingAsset((prev) => ({
+                          ...prev,
+                          unitLocation: e.target.value,
+                        }))
+                      }
+                      className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                      Rent Period
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Monthly"
+                      value={
+                        editingAsset.rentPeriod === "N/A"
+                          ? ""
+                          : editingAsset.rentPeriod || ""
+                      }
+                      onChange={(e) =>
+                        setEditingAsset((prev) => ({
+                          ...prev,
+                          rentPeriod: e.target.value,
+                        }))
+                      }
+                      className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 rounded-b-xl">
