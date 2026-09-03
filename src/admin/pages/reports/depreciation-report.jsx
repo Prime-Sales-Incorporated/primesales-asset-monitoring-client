@@ -170,6 +170,11 @@ const QuarterlyReportButton = ({
         );
         const pPos = fiscalPos(purchase.getMonth());
 
+        // NEW: asset doesn't exist yet as of this quarter — exclude it entirely
+        const purchasedAfterQEnd =
+          pFY > fy || (pFY === fy && pPos > qLastFiscalPos);
+        if (purchasedAfterQEnd) return;
+
         const purchasedBeforeQStart =
           pFY < fy || (pFY === fy && pPos < qFirstFiscalPos);
         const purchasedInQuarter =
