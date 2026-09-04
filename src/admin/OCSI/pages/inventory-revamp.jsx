@@ -302,33 +302,35 @@ const OCSIAssetInventory = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Search */}
-          <div className="relative">
-            <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
-              search
-            </span>
-            <input
-              type="text"
-              placeholder="Name or serial…"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9 pr-3 h-9 rounded-lg bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-blue-500 w-44 text-sm outline-none"
-            />
-          </div>
+          <div className="flex gap-2">
+            {/* Search */}
+            <div className="relative">
+              <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+                search
+              </span>
+              <input
+                type="text"
+                placeholder="Name or serial…"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-9 pr-3 h-9 rounded-lg bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-blue-500 w-44 text-sm outline-none"
+              />
+            </div>
 
-          {/* Category filter */}
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="h-9 px-3 rounded-lg bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 text-sm"
-          >
-            <option value="All">All Categories</option>
-            {KNOWN_CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+            {/* Category filter */}
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="h-9 px-3 rounded-lg w-40 md:w-40 bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 text-sm"
+            >
+              <option value="All">All Categories</option>
+              {KNOWN_CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* Status filter */}
           <select
@@ -440,7 +442,9 @@ const OCSIAssetInventory = () => {
             <p className="text-[11px] uppercase tracking-wide text-slate-400 mb-1">
               {s.label}
             </p>
-            <p className={`text-2xl font-bold ${s.color || "dark:text-white"}`}>
+            <p
+              className={`text-xl md:text-2xl font-bold ${s.color || "dark:text-white"}`}
+            >
               {s.value}
             </p>
           </div>
