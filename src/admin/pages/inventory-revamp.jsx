@@ -12,7 +12,7 @@ const categoryIcons = {
   Logistics: "🚜",
   Furniture: "🪑",
   "Office Supplies": "📁",
-  Tools: "🔧",
+  "Tools & Eqpt": "🔧",
   Misc: "📦",
   Uncategorized: "❓",
   "Building Imp": "🏢",
@@ -32,18 +32,15 @@ const statusColors = {
     "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400",
 };
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 15;
 
 const KNOWN_CATEGORIES = [
   "Office Eqpt & Furniture",
   "Land Property",
-  "IT Equipment",
   "Vehicles",
-  "Logistics",
-  "Furniture",
   "Office Supplies",
-  "Tools",
-  "Misc",
+  "Tools & Eqpt",
+  "Leasehold",
   "Building Imp",
   "Rental Eqpt",
 ];
@@ -51,6 +48,13 @@ const KNOWN_CATEGORIES = [
 const AssetInventory = () => {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Tracks only the very first fetch ever made. This is what should gate the
+  // full-screen "Loading assets..." state — NOT assets.length, since assets
+  // legitimately becomes [] whenever a search/filter matches nothing, and
+  // gating on that unmounts the whole page (search bar included) on every
+  // subsequent fetch, which is what was causing the search input to lose
+  // focus mid-typing.
+  const [initialLoad, setInitialLoad] = useState(true);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [view, setView] = useState("card");
@@ -118,7 +122,10 @@ const AssetInventory = () => {
         console.error("Load failed:", err);
         setAssets([]);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setInitialLoad(false);
+        }
       }
     };
 
@@ -280,7 +287,12 @@ const AssetInventory = () => {
     </div>
   );
 
-  if (loading && assets.length === 0) {
+  // Only ever true once, on the very first mount's fetch. This no longer
+  // depends on assets.length, so a search/filter that returns zero results
+  // does NOT re-trigger this full-page swap (which was unmounting the
+  // search input and stealing focus on every keystroke that led to an
+  // empty result set).
+  if (initialLoad && loading) {
     return (
       <div className="flex items-center justify-center h-screen text-slate-500">
         Loading assets...
@@ -583,7 +595,7 @@ const AssetInventory = () => {
 
                     <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-700 pt-2.5">
                       <div
-                        className="cursor-pointer hover:opacity-75 transition"
+                        className="cursor-pointer  :opacity-75 transition"
                         onClick={() => setPreviewQR(qrValue(asset))}
                       >
                         <QRCodeCanvas
@@ -594,6 +606,7 @@ const AssetInventory = () => {
                           level="H"
                         />
                       </div>
+
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleEdit(asset)}

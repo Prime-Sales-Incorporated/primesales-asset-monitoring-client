@@ -148,7 +148,7 @@ const OCSIRegisterAsset = () => {
 
                 <option value="Office Bldng">Office Bldng</option>
                 <option value="Building Imp">Building Imp</option>
-                <option value="Transpo Eqpt">Transpo Eqpt</option>
+                <option value="TVehicles">Vehicles</option>
               </select>
             </div>
 

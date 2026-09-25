@@ -2,11 +2,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import { fetchAssetStats } from "../../../OCSIhelper";
 
 const StatCard = ({ title, value }) => (
-  <div className="bg-white rounded-lg p-6 shadow-lg border border-gray-500">
+  <div className="bg-white rounded-lg p-4 sm:p-6 shadow-lg border border-gray-500">
     <p className="text-sm font-medium text-black/60 dark:text-white/60">
       {title}
     </p>
-    <p className="text-3xl font-bold mt-1">{value}</p>
+    <p className="text-2xl sm:text-3xl font-bold mt-1">{value}</p>
   </div>
 );
 
@@ -47,7 +47,12 @@ const BarChart = ({ data }) => {
 
   return (
     <div className="relative">
-      <div className="grid min-h-[180px] grid-flow-col gap-4 items-end justify-items-center pt-8 px-3">
+      <div
+        className="grid min-h-[140px] sm:min-h-[180px] grid-flow-col gap-2 sm:gap-4 items-end justify-items-center pt-8 px-1 sm:px-3"
+        style={{
+          gridTemplateColumns: `repeat(${data.length}, minmax(0, 1fr))`,
+        }}
+      >
         {data.map((d, idx) => (
           <div
             key={idx}
@@ -55,20 +60,26 @@ const BarChart = ({ data }) => {
             style={{ height: `${(d.value / max) * 100}%` }}
             onMouseEnter={() => setHovered(idx)}
             onMouseLeave={() => setHovered(null)}
+            onTouchStart={() => setHovered(idx)}
           >
             {hovered === idx && (
-              <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-black dark:text-white bg-white dark:bg-slate-900 px-2 py-1 rounded shadow z-10">
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] sm:text-xs font-bold text-black dark:text-white bg-white dark:bg-slate-900 px-2 py-1 rounded shadow z-10 whitespace-nowrap">
                 ₱{d.value.toLocaleString()}
               </div>
             )}
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-4 text-center mt-2">
+      <div
+        className="grid gap-2 sm:gap-4 text-center mt-2"
+        style={{
+          gridTemplateColumns: `repeat(${data.length}, minmax(0, 1fr))`,
+        }}
+      >
         {data.map((d) => (
           <p
             key={d.label}
-            className="text-xs font-bold text-black/50 dark:text-white/50"
+            className="text-[10px] sm:text-xs font-bold text-black/50 dark:text-white/50"
           >
             {d.label}
           </p>
@@ -100,6 +111,7 @@ const LineChart = ({ data }) => {
         viewBox={`0 0 ${width} ${height}`}
         width="100%"
         xmlns="http://www.w3.org/2000/svg"
+        preserveAspectRatio="none"
       >
         <defs>
           <linearGradient id="chartGradient" x1="0" x2="0" y1="0" y2={height}>
@@ -117,20 +129,22 @@ const LineChart = ({ data }) => {
             key={idx}
             cx={p.x}
             cy={p.y}
-            r={8}
+            r={10}
             fill="transparent"
             className="cursor-pointer"
             onMouseEnter={() => setHovered(idx)}
             onMouseLeave={() => setHovered(null)}
+            onTouchStart={() => setHovered(idx)}
           />
         ))}
       </svg>
       {hovered !== null && (
         <div
-          className="absolute -translate-x-1/2 text-xs font-bold text-black dark:text-white bg-white dark:bg-slate-900 px-2 py-1 rounded shadow z-10"
+          className="absolute -translate-x-1/2 text-[10px] sm:text-xs font-bold text-black dark:text-white bg-white dark:bg-slate-900 px-2 py-1 rounded shadow z-10 whitespace-nowrap"
           style={{
-            left: `${points[hovered].x}px`,
-            top: `${points[hovered].y - 20}px`,
+            left: `${(points[hovered].x / width) * 100}%`,
+            top: `${(points[hovered].y / height) * 100}%`,
+            marginTop: "-28px",
           }}
         >
           ₱{points[hovered].value.toLocaleString()}
@@ -170,92 +184,98 @@ const OCSIMainDashboard = () => {
         100;
 
   return (
-    <main className=" min-h-screen bg-[#f7fafc]">
-      <div className="p-8 max-w-[1600px] mx-auto">
+    <main className="min-h-screen bg-[#f7fafc]">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
         {/* PAGE TITLE */}
-        <h2 className="text-2xl font-bold dark:text-white mb-6">Dashboard</h2>
+        <h2 className="text-xl sm:text-2xl font-bold dark:text-white mb-4 sm:mb-6">
+          Dashboard
+        </h2>
 
         {/* ================= KPI GRID ================= */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {/* Total Assets */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <span className="material-symbols-outlined text-blue-600">
+          <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200">
+            <div className="flex justify-between items-start mb-2 sm:mb-4">
+              <div className="p-1.5 sm:p-2 bg-blue-50 rounded-lg">
+                <span className="material-symbols-outlined text-blue-600 text-lg sm:text-xl">
                   inventory_2
                 </span>
               </div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase">
+              <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase text-right">
                 Live Count
               </span>
             </div>
 
-            <p className="text-sm text-slate-500 uppercase">Total Assets</p>
-            <h3 className="text-4xl font-extrabold text-slate-900">
+            <p className="text-xs sm:text-sm text-slate-500 uppercase">
+              Total Assets
+            </p>
+            <h3 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900">
               {stats.totalAssets}
             </h3>
           </div>
 
           {/* Fully Depreciated */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-2 bg-red-50 rounded-lg">
-                <span className="material-symbols-outlined text-red-600">
+          <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200">
+            <div className="flex justify-between items-start mb-2 sm:mb-4">
+              <div className="p-1.5 sm:p-2 bg-red-50 rounded-lg">
+                <span className="material-symbols-outlined text-red-600 text-lg sm:text-xl">
                   history_toggle_off
                 </span>
               </div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase">
+              <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase text-right">
                 Cycle End
               </span>
             </div>
 
-            <p className="text-sm text-slate-500 uppercase">
+            <p className="text-xs sm:text-sm text-slate-500 uppercase">
               Fully Depreciated
             </p>
-            <h3 className="text-4xl font-extrabold text-slate-900">
+            <h3 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900">
               {stats.fullyDepreciated}
             </h3>
           </div>
 
           {/* New Assets */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-2 bg-green-50 rounded-lg">
-                <span className="material-symbols-outlined text-green-600">
+          <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200">
+            <div className="flex justify-between items-start mb-2 sm:mb-4">
+              <div className="p-1.5 sm:p-2 bg-green-50 rounded-lg">
+                <span className="material-symbols-outlined text-green-600 text-lg sm:text-xl">
                   fiber_new
                 </span>
               </div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase">
+              <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase text-right">
                 purchased within 15 days
               </span>
             </div>
 
-            <p className="text-sm text-slate-500 uppercase">New Assets</p>
-            <h3 className="text-4xl font-extrabold text-slate-900">
+            <p className="text-xs sm:text-sm text-slate-500 uppercase">
+              New Assets
+            </p>
+            <h3 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900">
               {stats.newAssets}
             </h3>
           </div>
 
           {/* Depreciation */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -mr-16 -mt-16" />
+          <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-blue-50 rounded-full -mr-12 -mt-12 sm:-mr-16 sm:-mt-16" />
 
-            <div className="flex justify-between items-start mb-4 relative z-10">
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <span className="material-symbols-outlined text-blue-600">
+            <div className="flex justify-between items-start mb-2 sm:mb-4 relative z-10">
+              <div className="p-1.5 sm:p-2 bg-blue-50 rounded-lg">
+                <span className="material-symbols-outlined text-blue-600 text-lg sm:text-xl">
                   payments
                 </span>
               </div>
-              <span className="text-[10px] font-bold text-blue-600 uppercase">
+              <span className="text-[9px] sm:text-[10px] font-bold text-blue-600 uppercase">
                 Active
               </span>
             </div>
 
-            <p className="text-sm text-slate-500 uppercase relative z-10">
+            <p className="text-xs sm:text-sm text-slate-500 uppercase relative z-10">
               Depreciation this Month
             </p>
 
-            <h3 className="text-2xl font-extrabold text-slate-900 relative z-10">
+            <h3 className="text-lg sm:text-xl md:text-2xl font-extrabold text-slate-900 relative z-10 break-words">
               ₱
               {stats.totalDepreciation.toLocaleString("en-PH", {
                 minimumFractionDigits: 2,
@@ -265,24 +285,24 @@ const OCSIMainDashboard = () => {
         </div>
 
         {/* ================= BENTO GRID ================= */}
-        <div className="grid grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
           {/* LEFT CHART (BAR) */}
-          <div className="col-span-12 lg:col-span-8 bg-white p-8 rounded-xl shadow-sm border">
-            <div className="flex justify-between items-end mb-6">
+          <div className="lg:col-span-8 bg-white p-4 sm:p-8 rounded-xl shadow-sm border">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3 mb-6">
               <div>
-                <h4 className="text-xl font-bold text-slate-900">
+                <h4 className="text-base sm:text-xl font-bold text-slate-900">
                   Monthly Depreciation
                 </h4>
-                <p className="text-sm text-slate-500">
+                <p className="text-xs sm:text-sm text-slate-500">
                   Comparative fiscal trend from last 7 months
                 </p>
               </div>
 
-              <div className="text-right">
-                <p className="text-[10px] font-bold text-slate-400 uppercase">
+              <div className="text-left sm:text-right">
+                <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase">
                   Cumulative
                 </p>
-                <p className="text-2xl font-black text-blue-600">
+                <p className="text-xl sm:text-2xl font-black text-blue-600">
                   ₱{totalLast7Months.toLocaleString()}
                 </p>
               </div>
@@ -292,55 +312,65 @@ const OCSIMainDashboard = () => {
           </div>
 
           {/* RIGHT PANEL */}
-          <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
+          <div className="lg:col-span-4 flex flex-col gap-6">
             {/* UTILIZATION CARD (CIRCLE STYLE BLOCK) */}
-            <div className="bg-red2 p-6 rounded-xl text-white shadow-xl">
-              <h4 className="font-bold text-lg mb-1">Asset Utilization</h4>
+            <div className="bg-red2 p-4 sm:p-6 rounded-xl text-white shadow-xl">
+              <h4 className="font-bold text-base sm:text-lg mb-1">
+                Asset Utilization
+              </h4>
               <p className="text-xs text-slate-400 mb-6">
                 Capacity performance index
               </p>
 
               <div className="flex justify-center mb-6">
-                <div className="w-32 h-32 rounded-full border-8 border-slate-700 relative flex items-center justify-center">
+                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full border-8 border-slate-700 relative flex items-center justify-center">
                   <div className="absolute inset-0 border-8 border-blue-400 rounded-full border-t-transparent rotate-45" />
-                  <span className="text-2xl font-black">
+                  <span className="text-xl sm:text-2xl font-black">
                     {utilization.toFixed(1)}%
                   </span>
                 </div>
               </div>
 
-              <div className="flex justify-between text-sm bg-white/5 p-3 rounded-lg">
+              <div className="flex justify-between text-xs sm:text-sm bg-white/5 p-3 rounded-lg">
                 <div>
-                  <p className="text-[10px] text-slate-400 uppercase">Trend</p>
+                  <p className="text-[9px] sm:text-[10px] text-slate-400 uppercase">
+                    Trend
+                  </p>
                   <span className="text-green-400 font-bold">+4.2%</span>
                 </div>
 
                 <div className="text-right">
-                  <p className="text-[10px] text-slate-400 uppercase">Peak</p>
+                  <p className="text-[9px] sm:text-[10px] text-slate-400 uppercase">
+                    Peak
+                  </p>
                   <span className="font-bold">88.1%</span>
                 </div>
               </div>
             </div>
 
             {/* QUICK INSIGHTS */}
-            <div className="bg-white p-6 rounded-xl border">
+            <div className="bg-white p-4 sm:p-6 rounded-xl border">
               <h5 className="text-xs font-bold text-slate-500 uppercase mb-4">
                 Quick Insights
               </h5>
 
               <ul className="space-y-4">
                 <li className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                  <p className="text-sm">3 High-value assets pending review</p>
+                  <div className="w-2 h-2 bg-blue-500 rounded-full shrink-0" />
+                  <p className="text-xs sm:text-sm">
+                    3 High-value assets pending review
+                  </p>
                 </li>
 
                 <li className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-red-500 rounded-full" />
-                  <p className="text-sm">Depreciation cycle optimized for Q2</p>
+                  <div className="w-2 h-2 bg-red-500 rounded-full shrink-0" />
+                  <p className="text-xs sm:text-sm">
+                    Depreciation cycle optimized for Q2
+                  </p>
                 </li>
               </ul>
 
-              <button className="w-full mt-6 bg-gradient-to-r from-blue-600 to-blue-400 text-white py-3 rounded-lg font-bold">
+              <button className="w-full mt-6 bg-gradient-to-r from-blue-600 to-blue-400 text-white py-2.5 sm:py-3 rounded-lg font-bold text-sm sm:text-base">
                 Generate Full Audit
               </button>
             </div>
@@ -348,32 +378,37 @@ const OCSIMainDashboard = () => {
         </div>
 
         {/* ================= LINE CHART SECTION ================= */}
-        <div className="bg-white mt-8 dark:bg-slate-900 rounded-lg p-6 border w-full">
+        <div className="bg-white mt-6 sm:mt-8 dark:bg-slate-900 rounded-lg p-4 sm:p-6 border w-full">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-sm font-medium text-black/60 dark:text-white/60">
                 Asset Utilization
               </p>
-              <p className="text-3xl font-bold mt-1">
+              <p className="text-2xl sm:text-3xl font-bold mt-1">
                 {utilization.toFixed(1)}%
               </p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-black/60 dark:text-white/60">
+              <p className="text-xs sm:text-sm text-black/60 dark:text-white/60">
                 Based on assets
               </p>
             </div>
           </div>
 
-          <div className="relative  mt-8">
+          <div className="relative mt-8">
             <LineChart data={chartData} />
           </div>
 
-          <div className="grid grid-cols-7 gap-4 text-center mt-2">
+          <div
+            className="grid gap-2 sm:gap-4 text-center mt-2"
+            style={{
+              gridTemplateColumns: `repeat(${chartData.length}, minmax(0, 1fr))`,
+            }}
+          >
             {chartData.map((d) => (
               <p
                 key={d.label}
-                className="text-xs font-bold text-black/50 dark:text-white/50"
+                className="text-[10px] sm:text-xs font-bold text-black/50 dark:text-white/50"
               >
                 {d.label}
               </p>

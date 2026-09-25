@@ -149,7 +149,8 @@ const RegisterAsset = () => {
 
                 <option value="Office Bldng">Office Bldng</option>
                 <option value="Building Imp">Building Imp</option>
-                <option value="Transpo Eqpt">Transpo Eqpt</option>
+                <option value="Vehicles">Vehicles</option>
+                <option value="Leasehold">Leasehold</option>
               </select>
             </div>
 
