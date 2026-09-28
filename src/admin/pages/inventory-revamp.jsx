@@ -38,7 +38,7 @@ const KNOWN_CATEGORIES = [
   "Office Eqpt & Furniture",
   "Land Property",
   "Vehicles",
-  "Office Supplies",
+  "Office Bldng",
   "Tools & Eqpt",
   "Leasehold",
   "Building Imp",
