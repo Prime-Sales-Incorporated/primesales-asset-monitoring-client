@@ -2,7 +2,10 @@ import React, { useEffect, useState, useRef } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Link } from "react-router-dom";
 import API_BASE_URL from "../../../API";
-import { OCSIfetchAssetsService } from "../../../services/OCSIassetService";
+import {
+  OCSIfetchAssetsService,
+  OCSIfetchAllAssetsService,
+} from "../../../services/OCSIassetService";
 
 const categoryIcons = {
   "Office Eqpt & Furniture": "💻",
@@ -51,6 +54,11 @@ const KNOWN_CATEGORIES = [
 const OCSIAssetInventory = () => {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Only true until the very first fetch finishes. Gates the full-screen
+  // "Loading assets..." state instead of assets.length, so a search/filter
+  // with zero results doesn't unmount the page and steal focus from the
+  // search input.
+  const [initialLoad, setInitialLoad] = useState(true);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [view, setView] = useState("card");
@@ -61,6 +69,8 @@ const OCSIAssetInventory = () => {
 
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
+  const [selectedIssuedTo, setSelectedIssuedTo] = useState("All");
+  const [issuedToOptions, setIssuedToOptions] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [previewQR, setPreviewQR] = useState(null);
   const [editingAsset, setEditingAsset] = useState(null);
@@ -77,6 +87,23 @@ const OCSIAssetInventory = () => {
   const editModalRef = useRef(null);
   const debounceRef = useRef(null);
 
+  // ── Load "Issued To" dropdown options ──
+  const loadIssuedToOptions = async () => {
+    try {
+      const all = await OCSIfetchAllAssetsService();
+      const names = [
+        ...new Set(all.map((a) => a.issuedTo?.trim()).filter(Boolean)),
+      ].sort((a, b) => a.localeCompare(b));
+      setIssuedToOptions(names);
+    } catch (err) {
+      console.error("Failed to load issuedTo options:", err);
+    }
+  };
+
+  useEffect(() => {
+    loadIssuedToOptions();
+  }, []);
+
   // ── Debounce search ──
   useEffect(() => {
     clearTimeout(debounceRef.current);
@@ -90,7 +117,7 @@ const OCSIAssetInventory = () => {
   // ── Reset page on filter change ──
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedCategory, selectedStatus, showAll]);
+  }, [selectedCategory, selectedStatus, selectedIssuedTo, showAll]);
 
   // ── Fetch assets ──
   useEffect(() => {
@@ -104,6 +131,7 @@ const OCSIAssetInventory = () => {
           limit: showAll ? 10000 : ITEMS_PER_PAGE,
           category: selectedCategory !== "All" ? selectedCategory : undefined,
           status: selectedStatus !== "All" ? selectedStatus : undefined,
+          issuedTo: selectedIssuedTo !== "All" ? selectedIssuedTo : undefined,
           search: searchTerm || undefined,
         });
 
@@ -118,7 +146,10 @@ const OCSIAssetInventory = () => {
         console.error("Load failed:", err);
         setAssets([]);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setInitialLoad(false);
+        }
       }
     };
 
@@ -126,7 +157,14 @@ const OCSIAssetInventory = () => {
     return () => {
       cancelled = true;
     };
-  }, [currentPage, selectedCategory, selectedStatus, searchTerm, showAll]);
+  }, [
+    currentPage,
+    selectedCategory,
+    selectedStatus,
+    selectedIssuedTo,
+    searchTerm,
+    showAll,
+  ]);
 
   // ── Reload on reconnect ──
   useEffect(() => {
@@ -200,6 +238,7 @@ const OCSIAssetInventory = () => {
         prev.map((a) => (a._id === updated._id ? updated : a)),
       );
       setEditingAsset(null);
+      loadIssuedToOptions(); // refresh dropdown in case "Issued To" changed
     } catch (err) {
       console.error(err);
     }
@@ -214,6 +253,7 @@ const OCSIAssetInventory = () => {
       });
       setAssets((prev) => prev.filter((a) => a.serialNumber !== serialNumber));
       setTotal((prev) => prev - 1);
+      loadIssuedToOptions(); // a name may no longer exist
     } catch (err) {
       console.error(err);
     }
@@ -280,7 +320,7 @@ const OCSIAssetInventory = () => {
     </div>
   );
 
-  if (loading && assets.length === 0) {
+  if (initialLoad && loading) {
     return (
       <div className="flex items-center justify-center h-screen text-slate-500">
         Loading assets...
@@ -352,6 +392,20 @@ const OCSIAssetInventory = () => {
             ))}
           </select>
 
+          {/* Issued To / Department filter */}
+          <select
+            value={selectedIssuedTo}
+            onChange={(e) => setSelectedIssuedTo(e.target.value)}
+            className="h-9 px-3 rounded-lg bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 text-sm max-w-[180px]"
+          >
+            <option value="All">All Departments / Users</option>
+            {issuedToOptions.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+
           {/* Show All toggle */}
           <button
             onClick={() => setShowAll((prev) => !prev)}
@@ -408,7 +462,7 @@ const OCSIAssetInventory = () => {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
         {[
           {
-            label: showAll ? "Total Assets" : "Total Assets",
+            label: "Total Assets",
             value: total,
             color: "",
           },
@@ -520,7 +574,7 @@ const OCSIAssetInventory = () => {
                       </span>
                     </div>
 
-                    <p className="text-xs italic text-slate-500 text- dark:text-slate-400 leading-snug line-clamp-2 mb-3 -mt-1">
+                    <p className="text-xs italic text-slate-500 dark:text-slate-400 leading-snug line-clamp-2 mb-3 -mt-1">
                       {asset.description || "No description"}
                     </p>
 

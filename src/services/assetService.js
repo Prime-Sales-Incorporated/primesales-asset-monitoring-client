@@ -1,6 +1,8 @@
 import API_BASE_URL from "../API";
 import db from "../offline/db";
 
+const HEADERS = { "ngrok-skip-browser-warning": "true" };
+
 // Paginated fetch — for list/table views
 export const fetchAssetsService = async (params = {}) => {
   try {
@@ -12,18 +14,21 @@ export const fetchAssetsService = async (params = {}) => {
 
       if (params.category) queryObj.category = params.category;
       if (params.status) queryObj.status = params.status;
+      if (params.issuedTo) queryObj.issuedTo = params.issuedTo;
       if (params.search) queryObj.search = params.search;
 
       const res = await fetch(
         `${API_BASE_URL}/api/asset/get/all?${new URLSearchParams(queryObj)}`,
-        { headers: { "ngrok-skip-browser-warning": "true" } },
+        { headers: HEADERS },
       );
 
       const data = await res.json();
 
-      // Cache page 1 for offline use
-      if (!params.page || params.page === 1) {
-        await db.assets.clear();
+      // Cache unfiltered page 1 for offline use. We only upsert (no clear),
+      // so a full snapshot saved by fetchAllAssetsService isn't wiped out.
+      const hasFilters =
+        params.category || params.status || params.issuedTo || params.search;
+      if ((!params.page || params.page === 1) && !hasFilters) {
         await db.assets.bulkPut(data.assets ?? []);
       }
 
@@ -35,12 +40,15 @@ export const fetchAssetsService = async (params = {}) => {
       if (params.category)
         all = all.filter((a) => a.category === params.category);
       if (params.status) all = all.filter((a) => a.status === params.status);
+      if (params.issuedTo)
+        all = all.filter((a) => a.issuedTo === params.issuedTo);
       if (params.search) {
         const q = params.search.toLowerCase();
         all = all.filter(
           (a) =>
             a.assetName?.toLowerCase().includes(q) ||
-            a.serialNumber?.toLowerCase().includes(q),
+            a.serialNumber?.toLowerCase().includes(q) ||
+            a.description?.toLowerCase().includes(q),
         );
       }
 
@@ -62,15 +70,22 @@ export const fetchAssetsService = async (params = {}) => {
   }
 };
 
-// Fetch ALL assets — only for depreciation dashboard
+// Fetch ALL assets — used by the depreciation dashboard and by the
+// "Issued To" dropdown. Also refreshes the full offline cache.
 export const fetchAllAssetsService = async () => {
   try {
     if (navigator.onLine) {
       const res = await fetch(`${API_BASE_URL}/api/asset/get/all?limit=10000`, {
-        headers: { "ngrok-skip-browser-warning": "true" },
+        headers: HEADERS,
       });
       const data = await res.json();
-      return data.assets ?? [];
+      const assets = data.assets ?? [];
+
+      // Full snapshot so offline filtering works over every asset
+      await db.assets.clear();
+      await db.assets.bulkPut(assets);
+
+      return assets;
     } else {
       return await db.assets.toArray();
     }

@@ -2,7 +2,10 @@ import React, { useEffect, useState, useRef } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Link } from "react-router-dom";
 import API_BASE_URL from "../../API";
-import { fetchAssetsService } from "../../../src/services/assetService";
+import {
+  fetchAssetsService,
+  fetchAllAssetsService,
+} from "../../../src/services/assetService";
 
 const categoryIcons = {
   "Office Eqpt & Furniture": "💻",
@@ -65,6 +68,8 @@ const AssetInventory = () => {
 
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
+  const [selectedIssuedTo, setSelectedIssuedTo] = useState("All");
+  const [issuedToOptions, setIssuedToOptions] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [previewQR, setPreviewQR] = useState(null);
   const [editingAsset, setEditingAsset] = useState(null);
@@ -81,6 +86,23 @@ const AssetInventory = () => {
   const editModalRef = useRef(null);
   const debounceRef = useRef(null);
 
+  // ── Load "Issued To" dropdown options ──
+  const loadIssuedToOptions = async () => {
+    try {
+      const all = await fetchAllAssetsService();
+      const names = [
+        ...new Set(all.map((a) => a.issuedTo?.trim()).filter(Boolean)),
+      ].sort((a, b) => a.localeCompare(b));
+      setIssuedToOptions(names);
+    } catch (err) {
+      console.error("Failed to load issuedTo options:", err);
+    }
+  };
+
+  useEffect(() => {
+    loadIssuedToOptions();
+  }, []);
+
   // ── Debounce search ──
   useEffect(() => {
     clearTimeout(debounceRef.current);
@@ -94,7 +116,7 @@ const AssetInventory = () => {
   // ── Reset page on filter change ──
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedCategory, selectedStatus, showAll]);
+  }, [selectedCategory, selectedStatus, selectedIssuedTo, showAll]);
 
   // ── Fetch assets ──
   useEffect(() => {
@@ -108,6 +130,7 @@ const AssetInventory = () => {
           limit: showAll ? 10000 : ITEMS_PER_PAGE,
           category: selectedCategory !== "All" ? selectedCategory : undefined,
           status: selectedStatus !== "All" ? selectedStatus : undefined,
+          issuedTo: selectedIssuedTo !== "All" ? selectedIssuedTo : undefined,
           search: searchTerm || undefined,
         });
 
@@ -133,7 +156,14 @@ const AssetInventory = () => {
     return () => {
       cancelled = true;
     };
-  }, [currentPage, selectedCategory, selectedStatus, searchTerm, showAll]);
+  }, [
+    currentPage,
+    selectedCategory,
+    selectedStatus,
+    selectedIssuedTo,
+    searchTerm,
+    showAll,
+  ]);
 
   // ── Reload on reconnect ──
   useEffect(() => {
@@ -207,6 +237,7 @@ const AssetInventory = () => {
         prev.map((a) => (a._id === updated._id ? updated : a)),
       );
       setEditingAsset(null);
+      loadIssuedToOptions(); // refresh dropdown in case "Issued To" changed
     } catch (err) {
       console.error(err);
     }
@@ -221,6 +252,7 @@ const AssetInventory = () => {
       });
       setAssets((prev) => prev.filter((a) => a.serialNumber !== serialNumber));
       setTotal((prev) => prev - 1);
+      loadIssuedToOptions(); // a name may no longer exist
     } catch (err) {
       console.error(err);
     }
@@ -362,6 +394,20 @@ const AssetInventory = () => {
             ))}
           </select>
 
+          {/* Issued To / Department filter */}
+          <select
+            value={selectedIssuedTo}
+            onChange={(e) => setSelectedIssuedTo(e.target.value)}
+            className="h-9 px-3 rounded-lg bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 text-sm max-w-[180px]"
+          >
+            <option value="All">All Departments / Users</option>
+            {issuedToOptions.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+
           {/* Show All toggle */}
           <button
             onClick={() => setShowAll((prev) => !prev)}
@@ -418,7 +464,7 @@ const AssetInventory = () => {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
         {[
           {
-            label: showAll ? "Total Assets" : "Total Assets",
+            label: "Total Assets",
             value: total,
             color: "",
           },
