@@ -1,4 +1,4 @@
-// AssetDepreciationDashboard.jsx
+// OCSIAssetDepreciationDashboard.jsx
 import React, { useEffect, useState } from "react";
 import { saveAs } from "file-saver";
 import ExcelJS from "exceljs";
@@ -50,6 +50,7 @@ const OCSIAssetDepreciationDashboard = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedQuarter, setSelectedQuarter] = useState("ALL");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
+  const [selectedIssuedTo, setSelectedIssuedTo] = useState("ALL");
   const [showFullLife, setShowFullLife] = useState(false);
   const [dateSortOrder, setDateSortOrder] = useState(null);
   const [purchasedYear, setPurchasedYear] = useState("ALL");
@@ -108,6 +109,11 @@ const OCSIAssetDepreciationDashboard = () => {
     ...new Set(assets.map((a) => a.category).filter(Boolean)),
   ];
 
+  // Distinct "Issued To" values for the department / user dropdown
+  const issuedToOptions = [
+    ...new Set(assets.map((a) => a.issuedTo?.trim()).filter(Boolean)),
+  ].sort((a, b) => a.localeCompare(b));
+
   // Calendar year boundaries
   const yearStart = new Date(selectedYear, 0, 1); // Jan 1
   const yearEnd = new Date(selectedYear, 11, 31); // Dec 31
@@ -116,15 +122,17 @@ const OCSIAssetDepreciationDashboard = () => {
   let filteredAssets = assets.filter((a) => {
     const categoryMatch =
       selectedCategory === "ALL" || a.category === selectedCategory;
+    const issuedToMatch =
+      selectedIssuedTo === "ALL" || a.issuedTo?.trim() === selectedIssuedTo;
     if (!a.purchaseDate) return false;
     const purchase = new Date(a.purchaseDate);
     const purchaseYear = purchase.getFullYear();
     const purchasedYearMatch =
       purchasedYear === "ALL" || purchaseYear === Number(purchasedYear);
     if (!purchasedYearMatch) return false;
-    if (!showCurrentYearOnly) return categoryMatch;
+    if (!showCurrentYearOnly) return categoryMatch && issuedToMatch;
     const inYear = purchase >= yearStart && purchase <= yearEnd;
-    return categoryMatch && inYear;
+    return categoryMatch && issuedToMatch && inYear;
   });
 
   // 2. Group into unique entries with qty
@@ -153,7 +161,7 @@ const OCSIAssetDepreciationDashboard = () => {
     const { qty = 1 } = asset;
     const schedule = getMonthlySchedule(asset);
 
-    // ── KEY FIX: pass quarterNum so Beg. NBV reflects end of previous quarter ──
+    // Pass quarterNum so Beg. NBV reflects end of previous quarter
     const unitBeginningNBV = getBeginningNBV(asset, selectedYear, quarterNum);
 
     const unitEndingNBV = getNBVForPeriod(
@@ -235,14 +243,16 @@ const OCSIAssetDepreciationDashboard = () => {
     const purchaseFilterNote = showCurrentYearOnly
       ? " (All purchased this calendar year)"
       : "";
+    const issuedToNote =
+      selectedIssuedTo !== "ALL" ? ` — Issued To: ${selectedIssuedTo}` : "";
     const fiscalRow = sheet.addRow([
       showFullLife
-        ? `Full Lifespan View${purchaseFilterNote}`
+        ? `Full Lifespan View${purchaseFilterNote}${issuedToNote}`
         : `Calendar Year: ${selectedYear} ${
             selectedQuarter !== "ALL"
               ? `– Quarter: Q${selectedQuarter} (${quarterMap[selectedQuarter].map((m) => months[m]).join(" - ")})`
               : "(Full Year)"
-          }${purchaseFilterNote}`,
+          }${purchaseFilterNote}${issuedToNote}`,
     ]);
     fiscalRow.font = { bold: true };
     sheet.mergeCells(2, 1, 2, totalColumns);
@@ -391,7 +401,7 @@ const OCSIAssetDepreciationDashboard = () => {
         <main className="p-3 space-y-3">
           {/* Filters */}
           <section className="mb-3 grid grid-cols-12 gap-3 items-center">
-            <div className="col-span-12 md:col-span-8 flex flex-wrap gap-2 items-center h-32 bg-surface-container-lowest p-1.5 rounded-lg editorial-shadow">
+            <div className="col-span-12 md:col-span-8 flex flex-wrap gap-2 items-center min-h-[8rem] bg-surface-container-lowest p-1.5 rounded-lg editorial-shadow">
               <div className="flex flex-wrap gap-2 items-center dark:bg-slate-800 p-2 rounded-lg dark:border-slate-700">
                 <div>
                   <label className="text-[10px] font-bold block text-on-surface-variant uppercase tracking-widest">
@@ -441,6 +451,23 @@ const OCSIAssetDepreciationDashboard = () => {
                   >
                     {categories.map((c) => (
                       <option key={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] block font-bold text-on-surface-variant uppercase tracking-widest">
+                    Issued To / Dept
+                  </label>
+                  <select
+                    value={selectedIssuedTo}
+                    onChange={(e) => setSelectedIssuedTo(e.target.value)}
+                    className="rounded border px-1.5 py-0.5 text-xs dark:bg-slate-900 max-w-[160px]"
+                  >
+                    <option value="ALL">ALL</option>
+                    {issuedToOptions.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
                     ))}
                   </select>
                 </div>

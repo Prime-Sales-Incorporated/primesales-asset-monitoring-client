@@ -37,6 +37,19 @@ const statusColors = {
 
 const ITEMS_PER_PAGE = 10;
 
+// Filters are kept in sessionStorage so they survive a page reload
+// (but are cleared when the tab is closed). Swap sessionStorage for
+// localStorage below if you want them remembered across sessions too.
+const FILTER_STORAGE_KEY = "ocsiAssetInventory.filters.v1";
+
+const loadSavedFilters = () => {
+  try {
+    return JSON.parse(sessionStorage.getItem(FILTER_STORAGE_KEY)) || {};
+  } catch {
+    return {};
+  }
+};
+
 const KNOWN_CATEGORIES = [
   "Office Eqpt & Furniture",
   "Land Property",
@@ -52,6 +65,7 @@ const KNOWN_CATEGORIES = [
 ];
 
 const OCSIAssetInventory = () => {
+  const [saved] = useState(loadSavedFilters);
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   // Only true until the very first fetch finishes. Gates the full-screen
@@ -61,15 +75,19 @@ const OCSIAssetInventory = () => {
   const [initialLoad, setInitialLoad] = useState(true);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [view, setView] = useState("card");
-  const [showAll, setShowAll] = useState(false);
+  const [view, setView] = useState(saved.view ?? "card");
+  const [showAll, setShowAll] = useState(saved.showAll ?? false);
 
-  const [searchInput, setSearchInput] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState(saved.search ?? "");
+  const [searchTerm, setSearchTerm] = useState(saved.search ?? "");
 
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [selectedStatus, setSelectedStatus] = useState("All");
-  const [selectedIssuedTo, setSelectedIssuedTo] = useState("All");
+  const [selectedCategory, setSelectedCategory] = useState(
+    saved.category ?? "All",
+  );
+  const [selectedStatus, setSelectedStatus] = useState(saved.status ?? "All");
+  const [selectedIssuedTo, setSelectedIssuedTo] = useState(
+    saved.issuedTo ?? "All",
+  );
   const [issuedToOptions, setIssuedToOptions] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [previewQR, setPreviewQR] = useState(null);
@@ -86,6 +104,32 @@ const OCSIAssetInventory = () => {
   const modalRef = useRef(null);
   const editModalRef = useRef(null);
   const debounceRef = useRef(null);
+
+  // ── Save filters whenever they change ──
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        FILTER_STORAGE_KEY,
+        JSON.stringify({
+          search: searchInput,
+          category: selectedCategory,
+          status: selectedStatus,
+          issuedTo: selectedIssuedTo,
+          showAll,
+          view,
+        }),
+      );
+    } catch {
+      /* storage unavailable — ignore */
+    }
+  }, [
+    searchInput,
+    selectedCategory,
+    selectedStatus,
+    selectedIssuedTo,
+    showAll,
+    view,
+  ]);
 
   // ── Load "Issued To" dropdown options ──
   const loadIssuedToOptions = async () => {
@@ -350,6 +394,7 @@ const OCSIAssetInventory = () => {
               </span>
               <input
                 type="text"
+                autoComplete="off"
                 placeholder="Name or serial…"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
@@ -359,6 +404,7 @@ const OCSIAssetInventory = () => {
 
             {/* Category filter */}
             <select
+              autoComplete="off"
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
               className="h-9 px-3 rounded-lg w-40 md:w-40 bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 text-sm"
@@ -374,6 +420,7 @@ const OCSIAssetInventory = () => {
 
           {/* Status filter */}
           <select
+            autoComplete="off"
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
             className="h-9 px-3 rounded-lg bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 text-sm"
@@ -394,12 +441,17 @@ const OCSIAssetInventory = () => {
 
           {/* Issued To / Department filter */}
           <select
+            autoComplete="off"
             value={selectedIssuedTo}
             onChange={(e) => setSelectedIssuedTo(e.target.value)}
             className="h-9 px-3 rounded-lg bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 text-sm max-w-[180px]"
           >
             <option value="All">All Departments / Users</option>
-            {issuedToOptions.map((name) => (
+            {(selectedIssuedTo !== "All" &&
+            !issuedToOptions.includes(selectedIssuedTo)
+              ? [...issuedToOptions, selectedIssuedTo]
+              : issuedToOptions
+            ).map((name) => (
               <option key={name} value={name}>
                 {name}
               </option>
