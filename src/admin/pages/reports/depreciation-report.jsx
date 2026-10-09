@@ -1,9 +1,12 @@
 // QuarterlyReportButton.jsx
 //
 // Drop-in "Generate Report" button for the PrimeSales AssetDepreciationDashboard.
-// Reads the same asset data already fetched by the parent and produces a
+// Reads the same rows already computed by the parent and produces a
 // Quarterly Depreciation Report Excel file matching the OCSI "MARCH 2026 (2)"
 // layout — adapted for PrimeSales' FISCAL year (Jun–May).
+//
+// One column is generated for EVERY distinct asset category found in the data,
+// followed by a TOTAL column, so report totals always equal dashboard totals.
 //
 // Fiscal Year quarters (FY starts June 1):
 //   Q1 → Jun, Jul, Aug  (selectedFiscalYear)
@@ -13,22 +16,19 @@
 //
 // Props
 // ─────
-// assets             – raw asset array from the API (same shape as dashboard)
+// rowData            – array of { asset, beginningNBV, endingNBV, deps } rows
+//                      (the same rows the dashboard already computed/displayed)
 // selectedFiscalYear – number, e.g. 2025  (means FY 2025-2026)
 // selectedQuarter    – "1" | "2" | "3" | "4"  (NOT "ALL" — button disables for ALL)
-// selectedCategory   – "ALL" | category string (optional filter)
 
 import React, { useState } from "react";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import {
-  getMonthlySchedule,
-  getBeginningNBV,
   getFiscalYearLabel,
   fiscalPos,
   firstPosOfQuarter,
   lastPosOfQuarter,
-  quarterMap,
 } from "../../../helpers/depreciationHelper";
 
 // ── Fiscal-year quarter config ────────────────────────────────────────────────
@@ -91,26 +91,11 @@ const FY_QUARTERS = {
   },
 };
 
-// ── Category bucket mapping ───────────────────────────────────────────────────
-// IMPORTANT: The three report buckets must cover every category that exists in
-// the database.  Any category that doesn't match "rental" or "tool" falls into
-// "Office Equipments" — the same bucket the dashboard would show it under.
-// This guarantees report totals always equal dashboard totals.
-const BUCKET_LABELS = [
-  "Office Equipments",
-  "Tools Assets",
-  "Rental Equipments",
-];
-
-const getBucket = (category) => {
-  if (!category) return "Office Equipments"; // default fallback
-  const c = category.trim().toLowerCase();
-  if (c.includes("rental")) return "Rental Equipments";
-  if (c.includes("tool")) return "Tools Assets";
-  // Everything else (Office, Furniture, Computer, Vehicle, Machinery, etc.)
-  // goes into Office Equipments so nothing is silently dropped.
-  return "Office Equipments";
-};
+// ── Category → column ─────────────────────────────────────────────────────────
+// Every distinct category gets its own column. Blank categories are grouped
+// under "Uncategorized" so nothing is silently dropped.
+const getBucket = (category) =>
+  (category && String(category).trim()) || "Uncategorized";
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -143,6 +128,7 @@ const QuarterlyReportButton = ({
         month: d.month,
       }));
 
+      // ── Build one bucket per distinct category ──────────────────────────
       const zero = () => ({
         lifetimeCostBeg: 0,
         additions: 0,
@@ -150,11 +136,17 @@ const QuarterlyReportButton = ({
         dep: [0, 0, 0],
         endingNBV: 0,
       });
-      const buckets = {
-        "Office Equipments": zero(),
-        "Tools Assets": zero(),
-        "Rental Equipments": zero(),
-      };
+
+      const bucketLabels = [
+        ...new Set(rowData.map(({ asset }) => getBucket(asset.category))),
+      ].sort((a, b) => a.localeCompare(b));
+
+      const buckets = Object.fromEntries(
+        bucketLabels.map((bk) => [bk, zero()]),
+      );
+
+      // Column layout: A = labels, B.. = categories, last = TOTAL
+      const totalCol = bucketLabels.length + 2;
 
       // Re-bucket the SAME rows the dashboard already computed and displayed —
       // no separate NBV/depreciation math here, so this can't drift from the screen.
@@ -170,7 +162,7 @@ const QuarterlyReportButton = ({
         );
         const pPos = fiscalPos(purchase.getMonth());
 
-        // NEW: asset doesn't exist yet as of this quarter — exclude it entirely
+        // Asset doesn't exist yet as of this quarter — exclude it entirely
         const purchasedAfterQEnd =
           pFY > fy || (pFY === fy && pPos > qLastFiscalPos);
         if (purchasedAfterQEnd) return;
@@ -198,11 +190,8 @@ const QuarterlyReportButton = ({
         buckets[bk].dep[0] +
         buckets[bk].dep[1] +
         buckets[bk].dep[2];
-      const nbv = (bk) => buckets[bk].endingNBV; // pulled straight from the dashboard's own total
-
-      const totalDepArr = [0, 1, 2].map((i) =>
-        BUCKET_LABELS.reduce((s, bk) => s + buckets[bk].dep[i], 0),
-      );
+      const nbv = (bk) => buckets[bk].endingNBV; // straight from the dashboard's own total
+      const sumAll = (fn) => bucketLabels.reduce((s, bk) => s + fn(bk), 0);
 
       const lastDaysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
       const qMonthLabels = qMonths.map(({ calYear, month }) => {
@@ -210,37 +199,32 @@ const QuarterlyReportButton = ({
         return `${String(month + 1).padStart(2, "0")}/${d}/${calYear}`;
       });
 
-      // ── 5. Build Excel ────────────────────────────────────────────────────
+      // ── Build Excel ─────────────────────────────────────────────────────
       const wb = new ExcelJS.Workbook();
       const ws = wb.addWorksheet(qCfg.sheetName(fy));
 
       ws.columns = [
         { width: 62 }, // A – labels
-        { width: 18 }, // B – Office
-        { width: 14 }, // C – Tools
-        { width: 18 }, // D – Rental
-        { width: 18 }, // E – TOTAL
+        ...bucketLabels.map(() => ({ width: 18 })), // one per category
+        { width: 18 }, // TOTAL
       ];
 
       // Style constants
       const MONEY = "#,##0.00";
       const RIGHT = { horizontal: "right" };
-      const CENTER = { horizontal: "center" };
-      const HEADER_FILL = {
+      const CENTER = {
+        horizontal: "center",
+        vertical: "middle",
+        wrapText: true,
+      };
+      const solid = (argb) => ({
         type: "pattern",
         pattern: "solid",
-        fgColor: { argb: "FFD9E1F2" },
-      };
-      const TOTAL_FILL = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFE2EFDA" },
-      };
-      const NBV_FILL = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFDCE6F1" },
-      };
+        fgColor: { argb },
+      });
+      const HEADER_FILL = solid("FFD9E1F2");
+      const TOTAL_FILL = solid("FFE2EFDA");
+      const NBV_FILL = solid("FFDCE6F1");
       const THIN = { style: "thin", color: { argb: "FFB8CCE4" } };
       const THICK = { style: "medium", color: { argb: "FF2F75B6" } };
       const font10 = (bold = false) => ({ bold, size: 10, name: "Calibri" });
@@ -259,90 +243,71 @@ const QuarterlyReportButton = ({
         cell.font = font10(bold);
       };
 
+      // Writes one value per category + the TOTAL column
+      const addValuesRow = (row, fn, fill) => {
+        bucketLabels.forEach((bk, i) => addMoney(row, i + 2, fn(bk), fill));
+        addMoney(row, totalCol, sumAll(fn), fill);
+      };
+
       const applyTotalBorder = (row) => {
-        [2, 3, 4, 5].forEach((col) => {
+        for (let col = 2; col <= totalCol; col++) {
           const cell = row.getCell(col);
           cell.border = { top: THICK, bottom: THICK };
           cell.font = font10(true);
-        });
+        }
       };
 
       const prevEndStr = qCfg.prevEndLabel(fy);
       const curEndStr = qCfg.endLabel(fy);
       const curEndDisp = qCfg.endDisplay(fy);
 
-      // ── ROW 1  Title ─────────────────────────────────────────────────────
+      // ── Title ───────────────────────────────────────────────────────────
       const r1 = ws.addRow([
         `PrimeSales Qtrly_ FY-${fy}-${fy + 1} EQUIPMENT ASSETS GROSS DEPRECIATION`,
       ]);
       r1.getCell(1).font = { bold: true, size: 13, name: "Calibri" };
-      ws.mergeCells(ws.rowCount, 1, ws.rowCount, 5);
+      ws.mergeCells(ws.rowCount, 1, ws.rowCount, totalCol);
       r1.getCell(1).alignment = CENTER;
 
-      // ── ROW 2  As of ─────────────────────────────────────────────────────
+      // ── As of ───────────────────────────────────────────────────────────
       const r2 = ws.addRow([`As of ${curEndDisp}`]);
       r2.getCell(1).font = { italic: true, size: 10, name: "Calibri" };
-      ws.mergeCells(ws.rowCount, 1, ws.rowCount, 5);
+      ws.mergeCells(ws.rowCount, 1, ws.rowCount, totalCol);
       r2.getCell(1).alignment = CENTER;
 
-      ws.addRow([]); // blank row 3
+      ws.addRow([]); // blank
 
-      // ── ROWS 4-5  Column headers ──────────────────────────────────────────
-      const r4 = ws.addRow(["", "Office", "Tools", "Rental", "TOTAL"]);
-      const r5 = ws.addRow(["", "Equipments", "Assets", "Equipments", ""]);
-      [r4, r5].forEach((r) => {
-        [2, 3, 4, 5].forEach((col) => {
-          const cell = r.getCell(col);
-          cell.font = font10(true);
-          cell.alignment = CENTER;
-          cell.fill = HEADER_FILL;
-          cell.border = { top: THIN, bottom: THIN, left: THIN, right: THIN };
-        });
-      });
+      // ── Column headers: one per category + TOTAL ────────────────────────
+      const rHdr = ws.addRow(["", ...bucketLabels, "TOTAL"]);
+      rHdr.height = 32;
+      for (let col = 2; col <= totalCol; col++) {
+        const cell = rHdr.getCell(col);
+        cell.font = font10(true);
+        cell.alignment = CENTER;
+        cell.fill = HEADER_FILL;
+        cell.border = { top: THIN, bottom: THIN, left: THIN, right: THIN };
+      }
 
-      ws.addRow([]); // blank row 6
+      ws.addRow([]); // blank
 
       // ════════════════════════════════════════════════════════════════════
       //  COST SECTION
       // ════════════════════════════════════════════════════════════════════
-      const rCostHdr = ws.addRow(["   Cost"]);
-      rCostHdr.getCell(1).font = font10(true);
+      ws.addRow(["   Cost"]).getCell(1).font = font10(true);
 
       const rCostBeg = ws.addRow([]);
       addLabel(rCostBeg, `Life Time balance as of ${prevEndStr}`, 2);
-      BUCKET_LABELS.forEach((bk, i) =>
-        addMoney(rCostBeg, i + 2, buckets[bk].lifetimeCostBeg),
-      );
-      addMoney(
-        rCostBeg,
-        5,
-        BUCKET_LABELS.reduce((s, bk) => s + buckets[bk].lifetimeCostBeg, 0),
-      );
+      addValuesRow(rCostBeg, (bk) => buckets[bk].lifetimeCostBeg);
 
       const rAdd = ws.addRow([]);
       addLabel(rAdd, "Additions", 2);
-      BUCKET_LABELS.forEach((bk, i) =>
-        addMoney(rAdd, i + 2, buckets[bk].additions),
-      );
-      addMoney(
-        rAdd,
-        5,
-        BUCKET_LABELS.reduce((s, bk) => s + buckets[bk].additions, 0),
-      );
+      addValuesRow(rAdd, (bk) => buckets[bk].additions);
 
       ws.addRow([]); // blank
 
       const rCostEnd = ws.addRow([]);
       addLabel(rCostEnd, `Lifetime cost Balance as of ${curEndStr}`, 0, true);
-      BUCKET_LABELS.forEach((bk, i) =>
-        addMoney(rCostEnd, i + 2, lifetimeCostEnd(bk), TOTAL_FILL),
-      );
-      addMoney(
-        rCostEnd,
-        5,
-        BUCKET_LABELS.reduce((s, bk) => s + lifetimeCostEnd(bk), 0),
-        TOTAL_FILL,
-      );
+      addValuesRow(rCostEnd, lifetimeCostEnd, TOTAL_FILL);
       applyTotalBorder(rCostEnd);
 
       ws.addRow([]); // blank
@@ -350,8 +315,7 @@ const QuarterlyReportButton = ({
       // ════════════════════════════════════════════════════════════════════
       //  ACCUMULATED DEPRECIATION SECTION
       // ════════════════════════════════════════════════════════════════════
-      const rAccHdr = ws.addRow(["   Accumulated Depreciation"]);
-      rAccHdr.getCell(1).font = font10(true);
+      ws.addRow(["   Accumulated Depreciation"]).getCell(1).font = font10(true);
 
       const rAccBeg = ws.addRow([]);
       addLabel(
@@ -359,36 +323,18 @@ const QuarterlyReportButton = ({
         `Lifetime accumulated depreciation as of  ${prevEndStr}`,
         2,
       );
-      BUCKET_LABELS.forEach((bk, i) =>
-        addMoney(rAccBeg, i + 2, buckets[bk].accumDepBeg),
-      );
-      addMoney(
-        rAccBeg,
-        5,
-        BUCKET_LABELS.reduce((s, bk) => s + buckets[bk].accumDepBeg, 0),
-      );
+      addValuesRow(rAccBeg, (bk) => buckets[bk].accumDepBeg);
 
       // 3 monthly depreciation rows
-      qMonths.forEach(({ calYear, month }, i) => {
+      qMonths.forEach((_, i) => {
         const rDep = ws.addRow([]);
         addLabel(rDep, `Depreciation ${qMonthLabels[i]}`, 2);
-        BUCKET_LABELS.forEach((bk, bi) =>
-          addMoney(rDep, bi + 2, buckets[bk].dep[i]),
-        );
-        addMoney(rDep, 5, totalDepArr[i]);
+        addValuesRow(rDep, (bk) => buckets[bk].dep[i]);
       });
 
       const rAccEnd = ws.addRow([]);
       addLabel(rAccEnd, `Depreciation Balance of ${curEndStr}`, 0, true);
-      BUCKET_LABELS.forEach((bk, i) =>
-        addMoney(rAccEnd, i + 2, accumDepEnd(bk), TOTAL_FILL),
-      );
-      addMoney(
-        rAccEnd,
-        5,
-        BUCKET_LABELS.reduce((s, bk) => s + accumDepEnd(bk), 0),
-        TOTAL_FILL,
-      );
+      addValuesRow(rAccEnd, accumDepEnd, TOTAL_FILL);
       applyTotalBorder(rAccEnd);
 
       ws.addRow([]); // blank
@@ -398,50 +344,37 @@ const QuarterlyReportButton = ({
       // ════════════════════════════════════════════════════════════════════
       const rNBV = ws.addRow([]);
       addLabel(rNBV, `NET BOOK VALUE as of ${curEndStr}`, 0, true);
-      BUCKET_LABELS.forEach((bk, i) => {
-        const cell = rNBV.getCell(i + 2);
-        cell.value = nbv(bk);
-        cell.numFmt = MONEY;
-        cell.alignment = RIGHT;
-        cell.fill = NBV_FILL;
+      addValuesRow(rNBV, nbv, NBV_FILL);
+      for (let col = 2; col <= totalCol; col++) {
+        const cell = rNBV.getCell(col);
         cell.font = {
           bold: true,
-          size: 10,
+          size: col === totalCol ? 11 : 10,
           name: "Calibri",
           color: { argb: "FF1F3864" },
         };
         cell.border = { top: THICK, bottom: THICK };
-      });
-      const totalNBVCell = rNBV.getCell(5);
-      totalNBVCell.value = BUCKET_LABELS.reduce((s, bk) => s + nbv(bk), 0);
-      totalNBVCell.numFmt = MONEY;
-      totalNBVCell.alignment = RIGHT;
-      totalNBVCell.fill = NBV_FILL;
-      totalNBVCell.font = {
-        bold: true,
-        size: 11,
-        name: "Calibri",
-        color: { argb: "FF1F3864" },
-      };
-      totalNBVCell.border = { top: THICK, bottom: THICK };
+      }
 
       ws.addRow([]); // blank
 
-      // ── Footer ────────────────────────────────────────────────────────────
-      const rNote = ws.addRow([
-        "*Understated Rental Equipments Purchased Costs from Previous FS",
-      ]);
-      rNote.getCell(1).font = {
-        italic: true,
-        size: 9,
-        name: "Calibri",
-        color: { argb: "FF666666" },
-      };
+      // ── Footer ──────────────────────────────────────────────────────────
+      // Only show the rental note when a rental category actually exists
+      if (bucketLabels.some((bk) => bk.toLowerCase().includes("rental"))) {
+        const rNote = ws.addRow([
+          "*Understated Rental Equipments Purchased Costs from Previous FS",
+        ]);
+        rNote.getCell(1).font = {
+          italic: true,
+          size: 9,
+          name: "Calibri",
+          color: { argb: "FF666666" },
+        };
+      }
       ws.addRow([]);
-      const rPrep = ws.addRow(["   PREPARED BY:"]);
-      rPrep.getCell(1).font = font10(true);
+      ws.addRow(["   PREPARED BY:"]).getCell(1).font = font10(true);
 
-      ws.views = [{ state: "frozen", xSplit: 0, ySplit: 5 }];
+      ws.views = [{ state: "frozen", xSplit: 0, ySplit: 4 }];
       ws.pageSetup = {
         orientation: "landscape",
         fitToPage: true,

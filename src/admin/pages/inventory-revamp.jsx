@@ -1143,7 +1143,7 @@ const AssetInventory = () => {
                 onClick={updateAsset}
                 className="px-5 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-sm font-semibold transition flex items-center gap-1.5"
               >
-                <span className="material-icons-round text-[16px]">save</span>
+                <span className="material-icons-rounds text-[16px]">save</span>
                 Save Changes
               </button>
             </div>
