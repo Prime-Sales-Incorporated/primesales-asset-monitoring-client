@@ -16,11 +16,13 @@ import {
   fiscalMonths,
   quarterMap,
 } from "../../helpers/depreciationHelper";
-import QuarterlyReportButton from "./reports/depreciation-report";
+import QuarterlyReportButton from "./reports/quarterlyworkbook";
+import DepartmentalReportButton from "./reports/departmentalbutton";
 
 // ─── Grouping helper ────────────────────────────────────────────────────────
 // Assets with the same name, purchaseDate, and assetCost are collapsed into one
 // "grouped" entry. Depreciation / NBV values are scaled by qty.
+
 const groupAssets = (assets) => {
   const map = new Map();
 
@@ -41,6 +43,7 @@ const groupAssets = (assets) => {
 
   return Array.from(map.values());
 };
+
 // ────────────────────────────────────────────────────────────────────────────
 
 const AssetDepreciationDashboard = () => {
@@ -377,6 +380,38 @@ const AssetDepreciationDashboard = () => {
     );
   };
 
+  const reportRowData =
+    quarterNum == null
+      ? []
+      : groupAssets(assets.filter((a) => a.purchaseDate)).map((asset) => {
+          const qty = asset.qty || 1;
+          const schedule = getMonthlySchedule(asset);
+          return {
+            asset,
+            beginningNBV:
+              getBeginningNBV(asset, selectedFiscalYear, quarterNum) * qty,
+            endingNBV:
+              getNBVForPeriod(asset, selectedFiscalYear, quarterNum) * qty,
+            deps: getScheduleForQuarter(
+              schedule,
+              selectedFiscalYear,
+              quarterNum,
+            ).map((d) => d * qty),
+          };
+        });
+
+  // optional: label the Excel when filters are active
+  const activeFilters = [
+    selectedCategory !== "ALL" && `Category: ${selectedCategory}`,
+    selectedIssuedTo !== "ALL" && `Issued To: ${selectedIssuedTo}`,
+    purchasedYear !== "ALL" && `Purchased Year: ${purchasedYear}`,
+    showCurrentFYOnly && "Purchased this Fiscal Year only",
+    hideZeroDepreciation && "Zero-depreciation assets hidden",
+  ].filter(Boolean);
+  const filterNote = activeFilters.length
+    ? `Filtered: ${activeFilters.join(" | ")}`
+    : "";
+
   const handleDateSort = () => {
     setDateSortOrder(dateSortOrder === "asc" ? "desc" : "asc");
   };
@@ -547,6 +582,12 @@ const AssetDepreciationDashboard = () => {
                 </button>
                 <QuarterlyReportButton
                   rowData={visibleRowData}
+                  filterNote={filterNote}
+                  selectedFiscalYear={selectedFiscalYear}
+                  selectedQuarter={selectedQuarter}
+                />
+                <DepartmentalReportButton
+                  rowData={reportRowData}
                   selectedFiscalYear={selectedFiscalYear}
                   selectedQuarter={selectedQuarter}
                 />
