@@ -1,4 +1,4 @@
-// depreciationHelpers.js
+// depreciationHelper.js
 
 export const months = [
   "Jan",
@@ -105,15 +105,70 @@ export const lastPosOfQuarter = (quarter) =>
 // Q1 → 0 (Jun), Q2 → 3 (Sep), Q3 → 6 (Dec), Q4 → 9 (Mar)
 export const firstPosOfQuarter = (quarter) => fiscalPos(quarterMap[quarter][0]);
 
+// ─── Period date helpers (NEW) ───────────────────────────────────────────────
+
+// Calendar year in which a given month of fiscal year `fiscalYear` falls.
+// FY N runs Jun N → May N+1, so Jun–Dec are in N and Jan–May are in N+1.
+const calendarYearOf = (fiscalYear, month) =>
+  month >= 5 ? fiscalYear : fiscalYear + 1;
+
+// First day of the fiscal year / quarter.
+export const getPeriodStartDate = (fiscalYear, quarter = null) => {
+  if (!quarter || quarter === "ALL") return new Date(fiscalYear, 5, 1);
+  const firstMonth = quarterMap[quarter][0];
+  return new Date(calendarYearOf(fiscalYear, firstMonth), firstMonth, 1);
+};
+
+// Last moment (23:59:59.999 local) of the last day of the fiscal year / quarter.
+// End-of-day matters: purchaseDate usually carries a time component (or a UTC
+// offset), so comparing against 00:00 would wrongly exclude assets bought ON
+// the last day (e.g. May 31).
+export const getPeriodEndDate = (fiscalYear, quarter = null) => {
+  if (!quarter || quarter === "ALL")
+    return new Date(fiscalYear + 1, 5, 0, 23, 59, 59, 999); // May 31
+  const q = quarterMap[quarter];
+  const lastMonth = q[q.length - 1];
+  // day 0 of the next month = last day of lastMonth
+  return new Date(
+    calendarYearOf(fiscalYear, lastMonth),
+    lastMonth + 1,
+    0,
+    23,
+    59,
+    59,
+    999,
+  );
+};
+
+// Calendar-day number (local time) so comparisons ignore time-of-day and
+// timezone offsets entirely: 2026-05-31 → 20260531.
+const dayNumber = (d) =>
+  d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+
+// True if the asset was purchased on or before the calendar day of `date`.
+export const purchasedOnOrBefore = (asset, date) => {
+  if (!asset || !asset.purchaseDate) return false;
+  const purchase = new Date(asset.purchaseDate);
+  if (isNaN(purchase)) return false;
+  return dayNumber(purchase) <= dayNumber(date);
+};
+
+// True if the asset did not exist yet on `date`
+// (purchased after that calendar day, or has no valid purchase date).
+const purchasedAfter = (asset, date) => !purchasedOnOrBefore(asset, date);
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Returns ending NBV after the given fiscal year + quarter.
 export const getNBVForPeriod = (asset, fiscalYear, quarter = "ALL") => {
+  // NEW: asset not yet purchased by the end of this period → contributes 0
+  if (purchasedAfter(asset, getPeriodEndDate(fiscalYear, quarter))) return 0;
+
   const schedule = getMonthlySchedule(asset);
   const cost = Number(asset.assetCost) || 0;
   let accumulatedDep = 0;
 
-  if (quarter === "ALL") {
+  if (quarter === "ALL" || !quarter) {
     schedule.forEach((s) => {
       const fy = getFiscalYearLabel(s.year, s.month);
       if (fy <= fiscalYear) accumulatedDep += s.dep;
@@ -141,6 +196,12 @@ export const getNBVForPeriod = (asset, fiscalYear, quarter = "ALL") => {
 // quarter = null / "ALL" → beginning of the fiscal year (= end of previous FY).
 // quarter = 1–4          → end of the previous quarter within the same FY.
 export const getBeginningNBV = (asset, fiscalYear, quarter = null) => {
+  // NEW: asset not yet purchased at the start of this period → contributes 0
+  // (must have been purchased on or before the day before the period starts)
+  const dayBeforeStart = getPeriodStartDate(fiscalYear, quarter);
+  dayBeforeStart.setDate(dayBeforeStart.getDate() - 1);
+  if (purchasedAfter(asset, dayBeforeStart)) return 0;
+
   const schedule = getMonthlySchedule(asset);
   const cost = Number(asset.assetCost) || 0;
   let accumulated = 0;

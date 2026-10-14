@@ -12,6 +12,8 @@ import {
   getScheduleForQuarter,
   getScheduleForFiscalYear,
   getCompleteTimeline,
+  getPeriodEndDate, // ← NEW
+  purchasedOnOrBefore, // ← NEW
   months,
   fiscalMonths,
   quarterMap,
@@ -44,6 +46,33 @@ const groupAssets = (assets) => {
   return Array.from(map.values());
 };
 
+// ─── Persisted state helper (NEW) ───────────────────────────────────────────
+// Same API as useState, but the value is saved to localStorage and restored
+// on reload. Used for every filter EXCEPT the Fiscal Year.
+
+const FILTER_STORAGE_PREFIX = "assetDepr.filters.";
+
+const usePersistedState = (key, initialValue) => {
+  const [value, setValue] = useState(() => {
+    try {
+      const raw = localStorage.getItem(FILTER_STORAGE_PREFIX + key);
+      return raw === null ? initialValue : JSON.parse(raw);
+    } catch {
+      return initialValue;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(FILTER_STORAGE_PREFIX + key, JSON.stringify(value));
+    } catch {
+      /* storage unavailable (private mode / quota) — ignore */
+    }
+  }, [key, value]);
+
+  return [value, setValue];
+};
+
 // ────────────────────────────────────────────────────────────────────────────
 
 const AssetDepreciationDashboard = () => {
@@ -53,14 +82,38 @@ const AssetDepreciationDashboard = () => {
   const [selectedFiscalYear, setSelectedFiscalYear] = useState(
     new Date().getFullYear(),
   );
-  const [selectedQuarter, setSelectedQuarter] = useState("ALL");
-  const [selectedCategory, setSelectedCategory] = useState("ALL");
-  const [selectedIssuedTo, setSelectedIssuedTo] = useState("ALL");
-  const [showFullLife, setShowFullLife] = useState(false);
-  const [dateSortOrder, setDateSortOrder] = useState(null);
-  const [purchasedYear, setPurchasedYear] = useState("ALL");
-  const [showCurrentFYOnly, setShowCurrentFYOnly] = useState(false);
-  const [hideZeroDepreciation, setHideZeroDepreciation] = useState(false);
+  const [selectedQuarter, setSelectedQuarter] = usePersistedState(
+    "quarter",
+    "ALL",
+  );
+  const [selectedCategory, setSelectedCategory] = usePersistedState(
+    "category",
+    "ALL",
+  );
+  const [selectedIssuedTo, setSelectedIssuedTo] = usePersistedState(
+    "issuedTo",
+    "ALL",
+  );
+  const [showFullLife, setShowFullLife] = usePersistedState(
+    "showFullLife",
+    false,
+  );
+  const [dateSortOrder, setDateSortOrder] = usePersistedState(
+    "dateSortOrder",
+    null,
+  );
+  const [purchasedYear, setPurchasedYear] = usePersistedState(
+    "purchasedYear",
+    "ALL",
+  );
+  const [showCurrentFYOnly, setShowCurrentFYOnly] = usePersistedState(
+    "showCurrentFYOnly",
+    false,
+  );
+  const [hideZeroDepreciation, setHideZeroDepreciation] = usePersistedState(
+    "hideZeroDepreciation",
+    false,
+  );
 
   // 7 frozen columns
   const stickyCols = [170, 120, 85, 45, 100, 120, 120];
@@ -119,8 +172,31 @@ const AssetDepreciationDashboard = () => {
     ...new Set(assets.map((a) => a.issuedTo?.trim()).filter(Boolean)),
   ].sort((a, b) => a.localeCompare(b));
 
+  // (NEW) A saved Category / Issued To may no longer exist in the data.
+  // Once assets are loaded, fall back to "ALL" so the table isn't silently empty.
+  useEffect(() => {
+    if (loading) return;
+    if (selectedCategory !== "ALL" && !categories.includes(selectedCategory)) {
+      setSelectedCategory("ALL");
+    }
+    if (
+      selectedIssuedTo !== "ALL" &&
+      !issuedToOptions.includes(selectedIssuedTo)
+    ) {
+      setSelectedIssuedTo("ALL");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, assets]);
+
   const fiscalStart = new Date(selectedFiscalYear, 5, 1);
   const fiscalEnd = new Date(selectedFiscalYear + 1, 4, 31);
+
+  // Derive quarter number (null when "ALL") — declared early (NEW) because the
+  // period-end cutoff below needs it.
+  const quarterNum = selectedQuarter === "ALL" ? null : Number(selectedQuarter);
+
+  // Last day of the selected fiscal year / quarter (NEW)
+  const periodEnd = getPeriodEndDate(selectedFiscalYear, quarterNum);
 
   // 1. Filter raw assets
   let filteredAssets = assets.filter((a) => {
@@ -150,18 +226,22 @@ const AssetDepreciationDashboard = () => {
     });
   }
 
-  const timeline = showFullLife ? getCompleteTimeline(groupedAssets) : null;
+  // 2b. (NEW) Drop assets purchased AFTER the end of the selected period.
+  // They did not exist yet, so they must not appear in Total Cost, Beg. NBV
+  // or End NBV. Full-lifespan view keeps everything.
+  const periodAssets = showFullLife
+    ? groupedAssets
+    : groupedAssets.filter((a) => purchasedOnOrBefore(a, periodEnd));
+
+  const timeline = showFullLife ? getCompleteTimeline(periodAssets) : null;
   const headerMonths = showFullLife
     ? []
     : selectedQuarter === "ALL"
       ? fiscalMonths
       : quarterMap[selectedQuarter];
 
-  // Derive quarter number (null when "ALL") — used consistently for both helpers
-  const quarterNum = selectedQuarter === "ALL" ? null : Number(selectedQuarter);
-
   // 3. Build row data — multiply all monetary values by qty
-  const rowData = groupedAssets.map((asset) => {
+  const rowData = periodAssets.map((asset) => {
     const { qty = 1 } = asset;
     const schedule = getMonthlySchedule(asset);
 
@@ -380,10 +460,14 @@ const AssetDepreciationDashboard = () => {
     );
   };
 
+  // (CHANGED) Only include assets purchased on or before the end of the
+  // selected quarter, so the departmental report stays consistent.
   const reportRowData =
     quarterNum == null
       ? []
-      : groupAssets(assets.filter((a) => a.purchaseDate)).map((asset) => {
+      : groupAssets(
+          assets.filter((a) => purchasedOnOrBefore(a, periodEnd)),
+        ).map((asset) => {
           const qty = asset.qty || 1;
           const schedule = getMonthlySchedule(asset);
           return {
