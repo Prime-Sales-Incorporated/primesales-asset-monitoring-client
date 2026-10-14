@@ -115,13 +115,11 @@ function AppLayout() {
           <Routes>
             {/* WEBSITE ROUTES */}
             <Route path="/home" element={<Home />} />
-
             {/* PUBLIC ROUTES */}
             <Route path="/cam" element={<CameraTest />} />
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginUser />} />
             <Route path="/admin/login" element={<LoginAdmin />} />
-
             {/* TENANT SELECT */}
             <Route
               path="/tenant"
@@ -131,14 +129,11 @@ function AppLayout() {
                 </PrivateRoute>
               }
             />
-
             {/* SCANNER */}
             <Route path="/scanner" element={<HybridQRScanner />} />
-
             {/* ======================== */}
             {/* PRIME SALES ROUTES       */}
             {/* ======================== */}
-
             <Route
               path="/dashboard"
               element={
@@ -204,7 +199,7 @@ function AppLayout() {
                 </PrivateRoute>
               }
             />
-
+            // safsa
             <Route
               path="/reports"
               element={
@@ -245,11 +240,9 @@ function AppLayout() {
                 </PrivateRoute>
               }
             />
-
             {/* ======================== */}
             {/* OCSI ROUTES              */}
             {/* ======================== */}
-
             <Route
               path="/ocsi/dashboard"
               element={
@@ -258,7 +251,6 @@ function AppLayout() {
                 </PrivateRoute>
               }
             />
-
             <Route
               path="/ocsi/depreciation"
               element={
@@ -267,7 +259,6 @@ function AppLayout() {
                 </PrivateRoute>
               }
             />
-
             {/* Placeholder OCSI routes — swap components as you build them */}
             <Route
               path="/ocsi/assets/add"
