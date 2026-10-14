@@ -194,12 +194,12 @@ function AppLayout() {
               path="/assets/depreciation"
               element={
                 <PrivateRoute>
-                  {/* <AssetDepreciationDashboard /> */}
-                  <MaintenanceScreen />
+                  <AssetDepreciationDashboard />
+                  {/* <MaintenanceScreen /> */}
                 </PrivateRoute>
               }
             />
-            // safsa
+            {/* asd */}
             <Route
               path="/reports"
               element={
