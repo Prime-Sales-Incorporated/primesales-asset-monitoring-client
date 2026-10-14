@@ -38,6 +38,7 @@ import OCSIRegisterAsset from "./admin/OCSI/pages/asset-add";
 import OCSIReportGenerator from "./admin/OCSI/pages/reports/depreciation-report";
 import OCSITrackAudit from "./admin/OCSI/pages/rentals/rental-auditpage";
 import OCSIHybridQRScanner from "./admin/OCSI/pages/OCSI-Scanner";
+import MaintenanceScreen from "./admin/pages/maintenance";
 
 function AppLayout() {
   const location = useLocation();
@@ -198,7 +199,8 @@ function AppLayout() {
               path="/assets/depreciation"
               element={
                 <PrivateRoute>
-                  <AssetDepreciationDashboard />
+                  {/* <AssetDepreciationDashboard /> */}
+                  <MaintenanceScreen />
                 </PrivateRoute>
               }
             />

@@ -2,7 +2,8 @@
 //
 // "FIXED ASSETS (Departmentalized)" quarterly report, laid out like the
 // accounting file "DEPRECIATION … KEN.xls". A department is listed only if it
-// has an asset that already exists as of the selected quarter's end.
+// has depreciation inside the selected quarter (departments with 0 depreciation
+// for the 3 months are left out).
 //
 // Props
 //   rowData            – UNFILTERED dashboard rows { asset, beginningNBV, endingNBV, deps[3] }
@@ -155,6 +156,10 @@ const pad = (n) => String(n).padStart(2, "0");
 const mdy = (d, fullYear = true) =>
   `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${fullYear ? d.getFullYear() : String(d.getFullYear()).slice(2)}`;
 
+// (NEW) "ALL" is the dashboard's "no filter" placeholder, not a real category
+// or department — it must never appear in the report.
+const isAllPlaceholder = (v) => /^\s*all\s*$/i.test(String(v ?? ""));
+
 const colLetter = (c) => {
   let s = "";
   while (c > 0) {
@@ -217,6 +222,10 @@ function buildDepartmentalWorkbook({
 
   let dashboardEndNBV = 0;
   rowData.forEach(({ asset, beginningNBV, endingNBV, deps }) => {
+    // (NEW) skip the "ALL" placeholder as a category or department
+    if (isAllPlaceholder(asset.category) || isAllPlaceholder(asset.issuedTo))
+      return;
+
     const qty = asset.qty || 1;
     const cost = (Number(asset.assetCost) || 0) * qty;
     const p = new Date(asset.purchaseDate);
@@ -247,9 +256,18 @@ function buildDepartmentalWorkbook({
     .filter((k) => k.startsWith("other:"))
     .sort();
   const deptKeys = [...DEPT_ORDER, ...extraKeys];
-  // Only departments that own at least one asset existing as of the quarter end
-  // (assets purchased after the quarter end were skipped above) are listed.
-  const deptNames = Object.keys(dept).sort((a, b) => a.localeCompare(b));
+
+  // (CHANGED) Only list departments that actually have depreciation within the
+  // 3 months of the selected quarter. Departments whose assets exist but have
+  // 0 depreciation for the period (fully depreciated, not yet started, etc.)
+  // are left out.
+  const hasDepreciation = (d) =>
+    Object.values(dept[d]).some((monthly) =>
+      monthly.some((v) => Math.abs(v) >= 0.005),
+    );
+  const deptNames = Object.keys(dept)
+    .filter(hasDepreciation)
+    .sort((a, b) => a.localeCompare(b));
 
   const wb = new ExcelJS.Workbook();
   const sheetBase = `${MONTH_ABBR[curEnd.getMonth()]} ${curEnd.getFullYear()}`;

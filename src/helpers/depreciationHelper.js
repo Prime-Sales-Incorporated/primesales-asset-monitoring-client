@@ -31,7 +31,15 @@ export const fiscalMonths = [5, 6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4];
 
 export const getMonthlySchedule = (asset) => {
   const cost = Number(asset.assetCost) || 0;
-  const life = Number(asset.lifeSpan) || 1;
+
+  // An explicit lifespan of 0 (or negative) means the asset does NOT depreciate
+  // (e.g. Land). Return an empty schedule so it carries its full cost as NBV
+  // forever. A blank / missing lifespan keeps the old fallback of 1 month.
+  const rawLife = asset.lifeSpan;
+  const hasLife = rawLife !== undefined && rawLife !== null && rawLife !== "";
+  if (hasLife && Number(rawLife) <= 0) return [];
+
+  const life = Number(rawLife) || 1;
 
   if (!asset.purchaseDate || cost <= 0 || life <= 0) return [];
 
