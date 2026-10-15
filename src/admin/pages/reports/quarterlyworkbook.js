@@ -396,8 +396,52 @@ const QuarterlyReportButton = ({
           color: { argb: "FF666666" },
         };
       }
+
+      ws
+        .addRow(["*This system was developed by Allen Paul Rebolla."])
+        .getCell(1).font = {
+        italic: true,
+        size: 9,
+        name: "Calibri",
+        color: { argb: "FF666666" },
+      };
+
+      ws
+        .addRow([
+          "*This is a system-generated report. Errors may occur, please review and verify the figures before use.",
+        ])
+        .getCell(1).font = {
+        italic: true,
+        size: 9,
+        name: "Calibri",
+        color: { argb: "FF666666" },
+      };
       ws.addRow([]);
+
       ws.addRow(["   PREPARED BY:"]).getCell(1).font = font10(true);
+      // ws.addRow(["   Kenneth Orbina"]).getCell(1).font = font10(true);
+      ws.addRow([]);
+      ws.addRow([]);
+
+      // Disclaimer + developer credit
+      // const rDisc = ws.addRow([
+      //   "   This is a system-generated report. Errors may occur; please review and verify the figures before use.",
+      // ]);
+      // rDisc.getCell(1).font = {
+      //   italic: true,
+      //   size: 9,
+      //   name: "Calibri",
+      //   color: { argb: "FF666666" },
+      // };
+      // const rCredit = ws.addRow([
+      //   "   This system was developed by Allen Paul Rebolla.",
+      // ]);
+      // rCredit.getCell(1).font = {
+      //   italic: true,
+      //   size: 9,
+      //   name: "Calibri",
+      //   color: { argb: "FF666666" },
+      // };
 
       ws.views = [{ state: "frozen", xSplit: 0, ySplit: 4 }];
       ws.pageSetup = {

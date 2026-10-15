@@ -109,7 +109,7 @@ const MaintenanceScreen = ({
         </p>
         <p className="mb-6 text-base font-semibold text-indigo-300 sm:text-lg">
           Please call <span className="text-amber-300">{master}</span>, your
-          master 👑, so he can fix it himself.
+          master 👑 so he can fix it himself.
         </p>
 
         {/* fake progress bar */}
