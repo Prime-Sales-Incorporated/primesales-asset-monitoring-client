@@ -194,8 +194,8 @@ function AppLayout() {
               path="/assets/depreciation"
               element={
                 <PrivateRoute>
-                  <AssetDepreciationDashboard />
-                  {/* <MaintenanceScreen /> */}
+                  {/* <AssetDepreciationDashboard /> */}
+                  <MaintenanceScreen />
                 </PrivateRoute>
               }
             />

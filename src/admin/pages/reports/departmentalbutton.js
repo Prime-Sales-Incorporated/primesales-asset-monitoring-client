@@ -236,10 +236,15 @@ function buildDepartmentalWorkbook({
 
     const key = keyOf(asset.category);
     const c = ensureCat(key);
-    if (pFY < fy || (pFY === fy && pPos < qFirst)) c.costBeg += cost;
-    else c.add += cost;
-
-    c.accBeg += Math.max(cost - beginningNBV, 0);
+    if (pFY < fy || (pFY === fy && pPos < qFirst)) {
+      c.costBeg += cost;
+      // existed before the quarter → carries accumulated depreciation at the start
+      c.accBeg += Math.max(cost - beginningNBV, 0);
+    } else {
+      // new addition this quarter → no beginning accumulated depreciation
+      // (its Beg. NBV is 0 by design, so cost - beginningNBV would wrongly equal cost)
+      c.add += cost;
+    }
     c.nbv += endingNBV;
     dashboardEndNBV += endingNBV;
 

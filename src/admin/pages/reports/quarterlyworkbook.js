@@ -182,10 +182,17 @@ const QuarterlyReportButton = ({
         const purchasedInQuarter =
           pFY === fy && pPos >= qFirstFiscalPos && pPos <= qLastFiscalPos;
 
-        if (purchasedBeforeQStart) buckets[bucket].lifetimeCostBeg += cost;
+        if (purchasedBeforeQStart) {
+          buckets[bucket].lifetimeCostBeg += cost;
+
+          // Only assets that existed BEFORE the quarter carry accumulated
+          // depreciation at the beginning. New additions start at 0 — their
+          // Beg. NBV is 0 by design, so "cost - beginningNBV" would wrongly
+          // equal the full cost and inflate the beginning balance.
+          buckets[bucket].accumDepBeg += Math.max(cost - beginningNBV, 0);
+        }
         if (purchasedInQuarter) buckets[bucket].additions += cost;
 
-        buckets[bucket].accumDepBeg += Math.max(cost - beginningNBV, 0);
         buckets[bucket].endingNBV += endingNBV;
 
         deps.forEach((d, i) => {
