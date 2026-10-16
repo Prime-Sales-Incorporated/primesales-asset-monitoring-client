@@ -276,7 +276,6 @@ const RegisterAsset = () => {
                       const endDate = rentPeriod.split(" - ")[1] || "";
                       setRentPeriod(`${e.target.value} - ${endDate}`);
                     }}
-                    required
                   />
 
                   {/* End Date */}
@@ -288,7 +287,6 @@ const RegisterAsset = () => {
                       const startDate = rentPeriod.split(" - ")[0] || "";
                       setRentPeriod(`${startDate} - ${e.target.value}`);
                     }}
-                    required
                   />
                 </div>
               </div>
